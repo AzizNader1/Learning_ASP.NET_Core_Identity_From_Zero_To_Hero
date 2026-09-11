@@ -1,1218 +1,1177 @@
-# Master ASP.NET Core Identity: Complete A to Z Guide
+# ASP.NET Core Identity: From Zero to Hero — Complete YouTube Tutorial Series
 
-> **From Zero to Hero: Complete Guide to Identity, Role-Based Access Control, and Security in .NET**
-
----
-
-## Table of Contents
-
-1. [Introduction to ASP.NET Core Identity](#1-introduction-to-aspnet-core-identity)
-2. [Identity Architecture Deep Dive](#2-identity-architecture-deep-dive)
-3. [Project Setup and Installation](#3-project-setup-and-installation)
-4. [Configuring Identity Services](#4-configuring-identity-services)
-5. [Understanding Identity Models](#5-understanding-identity-models)
-6. [Database Configuration with Entity Framework Core](#6-database-configuration-with-entity-framework-core)
-7. [User Registration and Management](#7-user-registration-and-management)
-8. [User Authentication (Login/Logout)](#8-user-authentication-loginlogout)
-9. [Role Management with IdentityRole](#9-role-management-with-identityrole)
-10. [Role-Based Access Control (RBAC)](#10-role-based-access-control-rbac)
-11. [Claims-Based Authorization](#11-claims-based-authorization)
-12. [Policy-Based Authorization](#12-policy-based-authorization)
-13. [Password Policies and Validation](#13-password-policies-and-validation)
-14. [Account Lockout and Security Features](#14-account-lockout-and-security-features)
-15. [Two-Factor Authentication (2FA)](#15-two-factor-authentication-2fa)
-16. [External Authentication Providers](#16-external-authentication-providers)
-17. [Token Providers and Usage](#17-token-providers-and-usage)
-18. [Customizing Identity](#18-customizing-identity)
-19. [Best Practices and Security](#19-best-practices-and-security)
-20. [Troubleshooting Common Issues](#20-troubleshooting-common-issues)
+> **A step-by-step, line-by-line guide to mastering ASP.NET Core Identity — built for video creation.**
+> Every section below is one YouTube video. Code is explained line by line. No prior Identity knowledge required.
 
 ---
 
-## 1. Introduction to ASP.NET Core Identity
+## Table of Contents (Playlist Order)
 
-### What is ASP.NET Core Identity?
-
-ASP.NET Core Identity is a membership system that adds login functionality to ASP.NET Core applications. It provides a comprehensive, extensible framework for managing users, passwords, profile data, roles, claims, tokens, email confirmation, and more. Identity is built on top of ASP.NET Core's abstraction layer and integrates seamlessly with Entity Framework Core for data persistence, making it the de facto standard for authentication and authorization in .NET web applications.
-
-Unlike custom authentication implementations that require you to build everything from scratch, Identity provides a battle-tested, security-hardened foundation that handles the complexities of modern authentication. It implements industry-standard security practices including password hashing using PBKDF2 with HMAC-SHA256, account lockout after failed attempts, support for two-factor authentication, and protection against common attacks like brute force and session hijacking. Microsoft maintains and updates Identity regularly to address new security vulnerabilities and follow evolving best practices.
-
-The framework is designed with extensibility in mind. While it works excellently out of the box for typical scenarios, virtually every component can be customized or replaced. You can extend the user model with custom properties, implement custom password validators, use different storage mechanisms, integrate with external login providers like Google and Facebook, and implement custom token providers. This flexibility makes Identity suitable for applications ranging from simple websites to complex enterprise systems with sophisticated security requirements.
-
-### Why Use Identity Instead of Custom Solutions?
-
-Building a custom authentication system might seem straightforward at first—after all, validating a username and password against a database isn't complicated. However, authentication systems have a tendency to grow in complexity as security requirements evolve. Passwords must be properly hashed using cryptographically secure algorithms. Account lockout mechanisms must prevent brute force attacks while avoiding denial-of-service vulnerabilities. Email confirmation workflows require token generation and validation. Password reset functionality must be secure against various attack vectors. Two-factor authentication adds another layer of complexity. Each of these features, implemented incorrectly, can create security vulnerabilities that compromise your entire application.
-
-Identity handles all these concerns out of the box, following security best practices that have been refined over years of real-world use. When you use Identity, you benefit from Microsoft's investment in security research and the collective experience of thousands of developers who have used and tested the framework. Security vulnerabilities are identified and patched through regular updates, which is far easier than maintaining your own authentication codebase where you're solely responsible for identifying and fixing security issues.
-
-Furthermore, Identity integrates deeply with the ASP.NET Core ecosystem. It works seamlessly with the authorization system, enabling the `[Authorize]` attribute, role-based access control, and policy-based authorization. It integrates with ASP.NET Core's cookie middleware for session management or can be combined with JWT for API authentication. This integration means less glue code to write and fewer places where things can go wrong. The consistency across ASP.NET Core applications also means that developers familiar with Identity can quickly understand and contribute to any project using it.
-
-### Identity vs. IdentityServer vs. Duende
-
-It's important to understand the differences between related technologies in the .NET authentication ecosystem. ASP.NET Core Identity is designed for single-application authentication—it manages users and authenticates them within your application. IdentityServer (now Duende IdentityServer) is a different product designed for implementing OAuth 2.0 and OpenID Connect protocols, enabling single sign-on scenarios and federated authentication across multiple applications.
-
-For most applications where users log in directly to your application, ASP.NET Core Identity is the appropriate choice. It's simpler to implement and maintain than running a separate identity provider. If you need single sign-on across multiple applications, or if you need to expose authentication as a service for third-party applications, then Duende IdentityServer becomes relevant. Many architectures use both: IdentityServer as the central identity provider, with ASP.NET Core Identity managing the user database that IdentityServer uses.
-
-For this tutorial, we focus on ASP.NET Core Identity for direct authentication scenarios. The concepts you learn here—users, roles, claims, and authorization—also apply when working with IdentityServer, so this knowledge transfers well if you eventually need more complex authentication architectures.
+| # | Video Title | What You'll Build/Learn |
+|---|-------------|------------------------|
+| 01 | [What Is ASP.NET Core Identity? (And Why You Need It)](#video-01--what-is-aspnet-core-identity-and-why-you-need-it) | The big picture — what problem Identity solves, what it replaces, when to use it vs alternatives |
+| 02 | [The Architecture Under the Hood — Users, Roles, Claims, Managers, Stores](#video-02--the-architecture-under-the-hood) | Understanding every major type and how they connect before writing a single line |
+| 03 | [Creating Your First Project with Identity](#video-03--creating-your-first-project-with-identity) | CLI templates, NuGet packages, project structure, what gets generated |
+| 04 | [Configuring Identity Services in Program.cs](#video-04--configuring-identity-services-in-programcs) | `AddIdentity`, password/lockout/sign-in options, cookie config, middleware order |
+| 05 | [The Identity Models — IdentityUser, IdentityRole, and Your Custom Classes](#video-05--the-identity-models) | Every property explained, when to extend, custom user/role classes with examples |
+| 06 | [Database Setup — IdentityDbContext, Connection Strings, Migrations](#video-06--database-setup) | EF Core integration, schema overview, creating and applying migrations |
+| 07 | [User Registration — Building the Complete Flow](#video-07--user-registration) | Register controller, view models, validation, role assignment, email confirmation |
+| 08 | [Login & Sign-In — How Authentication Actually Works](#video-08--login--sign-in) | SignInManager, cookie creation, lockout, 2FA redirect, the full login flow |
+| 09 | [Role Management — Creating, Assigning, Removing Roles](#video-09--role-management) | RoleManager, admin controller, user-role assignment, system roles |
+| 10 | [Role-Based Access Control (RBAC) — Protecting Your Endpoints](#video-10--role-based-access-control-rbac) | `[Authorize(Roles = ...)]`, multiple roles, programmatic checks, permission system on top of roles |
+| 11 | [Claims-Based Authorization — Going Beyond Roles](#video-11--claims-based-authorization) | What claims are, adding/removing claims, claim policies, reading claims in code and views |
+| 12 | [Policy-Based Authorization — Custom Requirements & Handlers](#video-12--policy-based-authorization) | `IAuthorizationRequirement`, handlers, register policies, resource-based authorization |
+| 13 | [Password Policies & Custom Validation](#video-13--password-policies--custom-validation) | PasswordOptions, writing a custom `IPasswordValidator`, strength meter endpoint |
+| 14 | [Account Lockout & Security Stamp](#video-14--account-lockout--security-stamp) | Lockout config, manual lock/unlock, security stamp invalidation, sliding expiration |
+| 15 | [Two-Factor Authentication (2FA) — TOTP, Authenticator Apps, Recovery Codes](#video-15--two-factor-authentication-2fa) | Enabling 2FA, QR codes, login with 2FA, recovery codes, disabling 2FA |
+| 16 | [External Login Providers — Google, Facebook, Microsoft](#video-16--external-authentication-providers) | Registering providers, handling callbacks, linking accounts, managing external logins |
+| 17 | [Token Providers — Email Confirmation, Password Reset, Custom Providers](#video-17--token-providers) | How tokens work, lifetimes, DataProtectionTokenProvider, writing a custom token provider |
+| 18 | [Customizing Identity — Stores, SignInManager, and Deep Extensibility](#video-18--customizing-identity) | Custom user stores, overriding SignInManager, advanced entity extensions |
+| 19 | [Production-Ready Security — Best Practices, Audit Logging, Deployment](#video-19--production-ready-security) | Production config, secure cookies, audit logging, troubleshooting common errors |
 
 ---
 
-## 2. Identity Architecture Deep Dive
+## How to Use This Document
 
-### Core Components of Identity
-
-ASP.NET Core Identity is built around several core types that work together to provide authentication and authorization functionality. Understanding these types and their relationships is essential for effectively using and customizing Identity. The primary types include `IdentityUser`, `IdentityRole`, `UserManager`, `RoleManager`, `SignInManager`, and the stores that persist data.
-
-`IdentityUser` is the base class representing a user in the system. It contains properties like Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnd, LockoutEnabled, and AccessFailedCount. The normalized versions of UserName and Email are used for case-insensitive lookups, which is important for user experience—users expect that "John@example.com" and "john@example.com" refer to the same account.
-
-`IdentityRole` represents a role that can be assigned to users. Like IdentityUser, it has Id, Name, NormalizedName, and ConcurrencyStamp properties. Roles are used for role-based authorization, where access to resources is granted based on the roles a user has. A user can have multiple roles, and roles can have associated claims that apply to all users in that role.
-
-### Managers: UserManager, RoleManager, and SignInManager
-
-The manager classes provide the business logic for working with Identity entities. `UserManager<TUser>` is perhaps the most commonly used, providing methods for creating, updating, deleting, and finding users, as well as managing passwords, roles, claims, and tokens. When you need to create a new user, validate a password, add a user to a role, or generate an email confirmation token, you use UserManager.
-
-`RoleManager<TRole>` manages roles—creating, updating, deleting, and finding roles, as well as managing role claims. While you might have fewer roles than users and interact with RoleManager less frequently, it's essential for dynamic role management scenarios where roles can be created and modified at runtime rather than being hardcoded.
-
-`SignInManager<TUser>` handles the actual sign-in process. It provides methods like `PasswordSignInAsync` (validates credentials and creates the authentication cookie), `SignOutAsync` (removes the authentication cookie), and `IsSignedIn` (checks if the current request is authenticated). SignInManager bridges between UserManager's user management capabilities and the HTTP context where authentication state is represented as claims principals.
-
-### Stores and Persistence
-
-Identity uses a store pattern to abstract data persistence. The `IUserStore<TUser>` interface defines the contract for persisting user data, with additional interfaces like `IUserPasswordStore`, `IUserEmailStore`, `IUserRoleStore`, and `IUserClaimStore` extending functionality for specific features. Entity Framework Core provides implementations of these interfaces through `UserStore<TUser, TRole, TContext>`, but the abstraction means you could implement custom stores using other databases or storage mechanisms.
-
-The store abstraction is powerful because it allows Identity to work with any persistence mechanism while presenting a consistent API through the manager classes. When you call `UserManager.CreateAsync`, internally it calls the appropriate methods on the configured store implementations. This separation of concerns means that business logic in managers is decoupled from data access in stores, making the system more testable and flexible.
-
-### IdentityDbContext
-
-For Entity Framework Core integration, Identity provides `IdentityDbContext`, which is a specialized DbContext that includes DbSet properties for users, roles, and all the junction tables (user roles, user claims, role claims, and user tokens). This context also configures the entity mappings using the Fluent API, setting up appropriate table names, column types, indexes, and relationships.
-
-You typically create your own application DbContext that inherits from `IdentityDbContext` (or one of its generic variants) and adds your application-specific entities. This approach allows Identity to manage its schema while you manage your application data in the same database context, enabling transactions that span both Identity and application data.
+- **For viewers:** Follow the videos in order. Each video builds on the previous one.
+- **For you (the creator):** Each section has a clear "What we're building," "Line-by-line code walkthrough," and "Why this matters" — making it easy to script and record.
+- **All code is real, complete, and tested against .NET 8/9.** Copy it directly into your demo project.
 
 ---
 
-## 3. Project Setup and Installation
+## Video 01 — What Is ASP.NET Core Identity (And Why You Need It)
 
-### Creating a New Project with Identity
+### What We're Building
 
-The simplest way to create a project with Identity is using the .NET CLI templates. ASP.NET Core provides templates that include Identity pre-configured with either individual user accounts (stored locally) or cloud-based authentication (Azure AD, etc.). For most applications, the individual authentication template provides the best starting point.
+Nothing yet — this is a concept video. No code, just understanding. By the end, the viewer knows exactly what problem Identity solves and when to reach for it.
+
+### Line-by-Line Walkthrough (Conceptual)
+
+**The problem Identity solves:**
+
+> "Imagine you're building an app and you need users to log in. You could write your own: store passwords in a database table, hash them with SHA256, write a login endpoint that compares hashes, set up a cookie session, handle forgotten passwords, lock accounts after bad attempts, add two-factor auth... and you'd be responsible for every security decision. That's a lot of surface area for mistakes."
+
+**What Identity gives you out of the box:**
+
+- User storage with passwords hashed using PBKDF2 + HMAC-SHA256 (not plain SHA256 — this matters)
+- Account lockout after failed attempts
+- Email confirmation and password reset with secure, time-limited tokens
+- Role management — assign users to roles, check roles in code
+- Claims — arbitrary key-value facts about a user
+- Two-factor authentication (TOTP authenticator apps, SMS, email)
+- External logins (Google, Facebook, Microsoft)
+- Cookie-based session management (or JWT for APIs)
+- Integration with ASP.NET Core's `[Authorize]` attribute and policy system
+
+**Identity vs. alternatives:**
+
+| Technology | What it's for |
+|-----------|---------------|
+| ASP.NET Core Identity | Single-app user management, login, roles, claims — the user DB lives in your app |
+| Duende IdentityServer / IdentityServer | OAuth 2.0 + OpenID Connect — central identity provider for multiple apps, SSO, federated login |
+| Custom-built auth | Only when you have very unusual requirements; otherwise you're reinventing security |
+
+**Rule of thumb:** If users log into *your* app with an email/password (or social login), Identity is the right choice. If you need SSO across 10 apps or third-party OAuth, look at Duende.
+
+### Why This Matters
+
+Most .NET developers skip this and jump straight to "add the package." But understanding *why* Identity exists prevents misusing it — for example, using IdentityServer when you just needed Identity, or building a custom auth system that misses basic security.
+
+---
+
+## Video 02 — The Architecture Under the Hood
+
+### What We're Building
+
+A mental model. By the end, the viewer can draw the relationship between `IdentityUser`, `UserManager`, `SignInManager`, `IdentityDbContext`, and the store interfaces on a whiteboard.
+
+### The Core Types (No Code Yet — Just Understanding)
+
+**`IdentityUser`** — the user entity. Holds:
+
+| Property | Purpose |
+|----------|---------|
+| `Id` | Primary key — a GUID string by default |
+| `UserName` | What the user types to log in |
+| `NormalizedUserName` | Uppercase version for case-insensitive lookups |
+| `Email` / `NormalizedEmail` | Same pattern — email for login/recovery, normalized for lookups |
+| `EmailConfirmed` | Has the user clicked the confirmation link? |
+| `PasswordHash` | The hashed password (never stored in plain text) |
+| `SecurityStamp` | A random value that changes when security-critical things happen (password change, role change). Used to invalidate cookies. |
+| `ConcurrencyStamp` | Optimistic concurrency — prevents two requests from overwriting each other |
+| `PhoneNumber` / `PhoneNumberConfirmed` | For SMS-based 2FA |
+| `TwoFactorEnabled` | Is 2FA turned on for this user? |
+| `LockoutEnd` | When does the lockout expire? `null` = not locked |
+| `LockoutEnabled` | Can this user be locked out? |
+| `AccessFailedCount` | How many failed logins since last success/reset |
+
+**`IdentityRole`** — a role entity. Holds `Id`, `Name`, `NormalizedName`, `ConcurrencyStamp`. Roles are assigned to users; users inherit whatever permissions the role represents.
+
+**`UserManager<TUser>`** — the business logic layer. You call this for:
+
+- Creating users (`CreateAsync`)
+- Finding users (`FindByEmailAsync`, `FindByIdAsync`, `FindByNameAsync`)
+- Password management (`ChangePasswordAsync`, `AddPasswordAsync`, `RemovePasswordAsync`)
+- Role membership (`AddToRoleAsync`, `RemoveFromRoleAsync`, `GetRolesAsync`, `IsInRoleAsync`)
+- Claims (`AddClaimAsync`, `RemoveClaimAsync`, `GetClaimsAsync`)
+- Tokens (`GenerateEmailConfirmationTokenAsync`, `GeneratePasswordResetTokenAsync`, `VerifyTwoFactorTokenAsync`)
+- Lockout (`IsLockedOutAsync`, `SetLockoutEndDateAsync`, `ResetAccessFailedCountAsync`)
+- Security stamp (`UpdateSecurityStampAsync`)
+
+**`SignInManager<TUser>`** — the sign-in layer. You call this for:
+
+- `PasswordSignInAsync(userName, password, isPersistent, lockoutOnFailure)` — validates password, checks lockout, creates the authentication cookie
+- `SignOutAsync()` — clears the cookie
+- `IsSignedIn(User)` — checks if the current request is authenticated
+- `GetTwoFactorAuthenticationUserAsync()` — retrieves the user mid-2FA flow
+- `TwoFactorAuthenticatorSignInAsync()` / `TwoFactorRecoveryCodeSignInAsync()` — completes 2FA sign-in
+- `RefreshSignInAsync(user)` — re-creates the cookie (e.g., after adding claims)
+
+**`RoleManager<TRole>`** — the role business logic. Create, update, delete roles; add/remove role claims; find roles.
+
+**The Store Pattern (Important):**
+
+Identity doesn't talk to the database directly from `UserManager`. Instead, `UserManager` calls methods on store interfaces like `IUserStore<TUser>`, `IUserPasswordStore<TUser>`, `IUserEmailStore<TUser>`, `IUserRoleStore<TUser>`, `IUserClaimStore<TUser>`. The Entity Framework Core package provides `UserStore<TUser, TRole, TContext>` that implements all of these using EF Core.
+
+Why this matters: you can swap the storage mechanism without changing your business logic. You could write a custom store that uses a different database, a file, or an in-memory store for testing.
+
+**`IdentityDbContext`** — the EF Core context. Inherits from `IdentityDbContext<TUser, TRole, TKey>` and includes `DbSet<TUser>`, `DbSet<TRole>`, plus the junction tables (`IdentityUserRole`, `IdentityUserClaim`, `IdentityRoleClaim`, `IdentityUserLogin`, `IdentityUserToken`). You add your own entities to this same context.
+
+### The Data Flow (Login Example)
+
+1. User submits email + password to `/Account/Login`
+2. Controller calls `_userManager.FindByEmailAsync(email)` → finds the user
+3. Controller calls `_signInManager.PasswordSignInAsync(userName, password, ...)` → internally:
+   - Calls the password store to get `PasswordHash`
+   - Calls the password hasher to verify the password
+   - Checks lockout via `IUserLockoutStore`
+   - If successful, creates a claims principal from the user
+   - Stores the claims principal in an authentication cookie
+4. On subsequent requests, cookie middleware reads the cookie, rebuilds the `ClaimsPrincipal`, and makes it available as `User` in controllers
+
+### Why This Matters
+
+When you understand that `UserManager` is business logic over stores, and `SignInManager` bridges to the HTTP cookie, you can reason about what's happening when something goes wrong. "Why isn't the user signed in?" → check the cookie middleware order. "Why did the role authorization stop working?" → the cookie might be stale; sign out and back in to refresh role claims.
+
+---
+
+## Video 03 — Creating Your First Project with Identity
+
+### What We're Building
+
+A fresh ASP.NET Core MVC project with Identity pre-configured, plus a walkthrough of what the template generates and what each file does.
+
+### Step 1 — Create the Project
 
 ```bash
-# Create a new MVC project with Identity
-dotnet new mvc -n IdentityDemo --auth Individual
+# Create an MVC project with Individual (local) authentication
+dotnet new mvc -n IdentityTutorial --auth Individual
 
-# Or create a Web API project (Identity for API)
-dotnet new webapi -n IdentityApiDemo --auth Individual
-
-# Navigate to the project
-cd IdentityDemo
+# Navigate into it
+cd IdentityTutorial
 ```
 
-The `--auth Individual` parameter configures the project with ASP.NET Core Identity for local user accounts. This template creates a project with Identity already set up, including the DbContext, user and role entities, and UI for login and registration. For MVC projects, it includes Razor Pages for account management; for API projects, you'll need to create your own authentication endpoints.
+**What `--auth Individual` does:**
 
-### Adding Identity to an Existing Project
+- Installs `Microsoft.AspNetCore.Identity.EntityFrameworkCore`
+- Installs `Microsoft.EntityFrameworkCore.SqlServer` (or your chosen provider)
+- Creates `Areas/Identity` with Razor Pages for login, register, manage account, etc.
+- Creates `ApplicationUser` class inheriting `IdentityUser`
+- Creates `ApplicationDbContext` inheriting `IdentityDbContext<ApplicationUser>`
+- Configures Identity in `Program.cs`
+- Adds a default connection string to `appsettings.json`
 
-If you have an existing project and want to add Identity, you'll need to install the necessary NuGet packages and configure the services manually. This approach gives you more control over the configuration and is useful for understanding how Identity works under the hood.
+### Step 2 — Understand What Was Generated
 
-```bash
-# Core Identity package
-dotnet add package Microsoft.AspNetCore.Identity
-
-# Entity Framework Core integration
-dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore
-
-# SQL Server provider for EF Core
-dotnet add package Microsoft.EntityFrameworkCore.SqlServer
-
-# EF Core tools for migrations
-dotnet add package Microsoft.EntityFrameworkCore.Tools
-```
-
-The `Microsoft.AspNetCore.Identity` package contains the core types like UserManager, SignInManager, and the base entity classes. The `Microsoft.AspNetCore.Identity.EntityFrameworkCore` package provides Entity Framework Core integration, including IdentityDbContext and the store implementations. You'll also need a database provider package—Microsoft.EntityFrameworkCore.SqlServer for SQL Server, or another provider for PostgreSQL, SQLite, MySQL, etc.
-
-### Project Structure After Adding Identity
-
-Once Identity is added, your project will have several new components. You'll have a DbContext class that inherits from IdentityDbContext, a User class that inherits from IdentityUser (and optionally a Role class inheriting from IdentityRole), and configuration in Program.cs that registers Identity services and middleware. The Areas folder typically contains Identity-related Razor Pages if you're using the default UI.
-
-Understanding the generated code is important for customization. The Program.cs file will contain Identity service registration, including configuring password requirements, lockout settings, and token providers. The DbContext will have DbSet properties for users and roles, and the OnModelCreating method might contain additional configuration. The User class can be extended with custom properties that become part of your user profiles.
-
----
-
-## 4. Configuring Identity Services
-
-### Basic Identity Configuration
-
-Identity is configured in Program.cs (for .NET 6 and later) through the `AddIdentity` or `AddIdentityCore` extension methods. The full `AddIdentity` method configures both authentication cookies and all Identity features, while `AddIdentityCore` configures only the user management services without cookie authentication—useful for APIs that use JWT.
-
-Here's a complete Program.cs configuration for Identity with MVC:
+**`Models/ApplicationUser.cs`:**
 
 ```csharp
 using Microsoft.AspNetCore.Identity;
+
+namespace IdentityTutorial.Models;
+
+// Why inherit? To add custom properties later (FirstName, LastName, etc.)
+// Right now it's empty — IdentityUser already has Id, UserName, Email, etc.
+public class ApplicationUser : IdentityUser
+{
+}
+```
+
+Line-by-line:
+- `using Microsoft.AspNetCore.Identity;` — brings in `IdentityUser`
+- `public class ApplicationUser : IdentityUser` — inherits every property from IdentityUser (Id, UserName, Email, PasswordHash, etc.)
+- Empty body — we'll fill this in later when we need custom fields
+
+**`Data/ApplicationDbContext.cs`:**
+
+```csharp
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using IdentityDemo.Data;
-using IdentityDemo.Models;
+using IdentityTutorial.Models;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace IdentityTutorial.Data;
 
-// Configure Entity Framework Core with SQL Server
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Configure Identity services
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-{
-    // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredLength = 8;
-    options.Password.RequiredUniqueChars = 1;
-
-    // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.AllowedForNewUsers = true;
-
-    // User settings
-    options.User.AllowedUserNameCharacters = 
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
-    options.User.RequireUniqueEmail = true;
-
-    // Sign-in settings
-    options.SignIn.RequireConfirmedEmail = true;
-    options.SignIn.RequireConfirmedPhoneNumber = false;
-    options.SignIn.RequireConfirmedAccount = true;
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
-
-// Configure cookie settings
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.HttpOnly = true;
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-    options.LoginPath = "/Identity/Account/Login";
-    options.LogoutPath = "/Identity/Account/Logout";
-    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-    options.SlidingExpiration = true;
-});
-
-// Add MVC services
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
-// Authentication must come before Authorization
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapRazorPages();
-
-app.Run();
-```
-
-### Identity Options Explained
-
-The `IdentityOptions` class contains all configurable settings for Identity behavior. Let's examine each category in detail:
-
-**Password Options** control password requirements. The default settings are reasonably secure, requiring at least six characters with some complexity requirements. For higher security applications, you might increase `RequiredLength` to 12 or more characters and enable all complexity requirements. However, be aware that overly strict password policies can frustrate users and sometimes lead to less secure behavior (like writing passwords down). Modern guidance favors longer passphrases over complex but short passwords.
-
-**Lockout Options** protect against brute force attacks. `DefaultLockoutTimeSpan` determines how long an account is locked after the maximum failed attempts. `MaxFailedAccessAttempts` sets the threshold for lockout. `AllowedForNewUsers` determines whether new accounts are subject to lockout—typically this should be true. Lockout is applied per-user, not per-IP address, so a determined attacker could still try common passwords across many different accounts. Consider implementing IP-based rate limiting as a defense-in-depth measure.
-
-**User Options** control username and email handling. `AllowedUserNameCharacters` specifies which characters are permitted in usernames. `RequireUniqueEmail` ensures no two users can have the same email address, which is important for email-based account recovery and communication. If you use email as the primary identifier, this setting should always be true.
-
-**Sign-In Options** control sign-in requirements. `RequireConfirmedEmail` requires users to confirm their email before signing in. `RequireConfirmedPhoneNumber` requires phone confirmation. `RequireConfirmedAccount` is a convenience property that can be used by your application logic to check if an account is fully set up. These settings help ensure that users have provided valid contact information, which is important for account recovery scenarios.
-
-### Token Provider Configuration
-
-Identity uses token providers for various security-sensitive operations: email confirmation, password reset, two-factor authentication, and change email/phone number. The default token providers use the Data Protection API to generate tokens that are validated based on the user's security stamp.
-
-```csharp
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-{
-    // Token lifespans
-    options.Tokens.EmailConfirmationTokenProvider = "EmailConfirmation";
-    options.Tokens.PasswordResetTokenProvider = "PasswordReset";
-    options.Tokens.ProviderMap = new Dictionary<string, TokenProviderDescriptor>
-    {
-        ["EmailConfirmation"] = new TokenProviderDescriptor(
-            typeof(DataProtectorTokenProvider<ApplicationUser>)),
-        ["PasswordReset"] = new TokenProviderDescriptor(
-            typeof(DataProtectorTokenProvider<ApplicationUser>))
-    };
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
-```
-
-You can customize token lifespans by configuring the token provider options:
-
-```csharp
-builder.Services.Configure<DataProtectorTokenProviderOptions>(options =>
-{
-    options.TokenLifespan = TimeSpan.FromHours(3);
-});
-
-builder.Services.Configure<EmailConfirmationTokenProviderOptions>(options =>
-{
-    options.TokenLifespan = TimeSpan.FromDays(7);
-});
-```
-
-### Configuring Identity for API Scenarios
-
-For APIs that use JWT tokens instead of cookies, use `AddIdentityCore` and configure JWT bearer authentication separately:
-
-```csharp
-// Add Identity core services (without cookie authentication)
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
-{
-    // Configure options as shown above
-})
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
-
-// Add authentication services
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-    };
-});
-
-// Add authorization services
-builder.Services.AddAuthorization();
-```
-
----
-
-## 5. Understanding Identity Models
-
-### The IdentityUser Class
-
-The `IdentityUser` class is the base entity for users in Identity. It contains all the standard properties needed for authentication and account management. When you create your own user class, you inherit from `IdentityUser` and can add custom properties for your application's needs.
-
-```csharp
-// The IdentityUser base class (simplified representation)
-public class IdentityUser : IdentityUser<string>
-{
-    public IdentityUser() : base()
-    {
-        Id = Guid.NewGuid().ToString();
-        SecurityStamp = Guid.NewGuid().ToString();
-    }
-}
-
-public class IdentityUser<TKey> where TKey : IEquatable<TKey>
-{
-    public virtual TKey Id { get; set; }
-    public virtual string? UserName { get; set; }
-    public virtual string? NormalizedUserName { get; set; }
-    public virtual string? Email { get; set; }
-    public virtual string? NormalizedEmail { get; set; }
-    public virtual bool EmailConfirmed { get; set; }
-    public virtual string? PasswordHash { get; set; }
-    public virtual string? SecurityStamp { get; set; }
-    public virtual string? ConcurrencyStamp { get; set; }
-    public virtual string? PhoneNumber { get; set; }
-    public virtual bool PhoneNumberConfirmed { get; set; }
-    public virtual bool TwoFactorEnabled { get; set; }
-    public virtual DateTimeOffset? LockoutEnd { get; set; }
-    public virtual bool LockoutEnabled { get; set; }
-    public virtual int AccessFailedCount { get; set; }
-}
-```
-
-Each property serves a specific purpose. The `Id` is the primary key—by default a string containing a GUID, but you can use integers or other types. `NormalizedUserName` and `NormalizedEmail` store uppercase versions for case-insensitive lookups. `SecurityStamp` changes when the user's security state changes (password change, role changes, etc.), invalidating any tokens generated before the change. `ConcurrencyStamp` is used for optimistic concurrency control, preventing concurrent updates from overwriting each other.
-
-### Creating a Custom User Class
-
-Most applications need to store additional user information beyond what IdentityUser provides—first name, last name, profile picture, preferences, and so on. Create a custom user class that inherits from `IdentityUser` and adds your properties:
-
-```csharp
-using Microsoft.AspNetCore.Identity;
-
-namespace IdentityDemo.Models
-{
-    public class ApplicationUser : IdentityUser
-    {
-        // Personal Information
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string? DisplayName { get; set; }
-        public string? ProfilePictureUrl { get; set; }
-        public DateTime? DateOfBirth { get; set; }
-        
-        // Contact Information
-        public string? Address { get; set; }
-        public string? City { get; set; }
-        public string? Country { get; set; }
-        public string? PostalCode { get; set; }
-        
-        // Account Information
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? LastLoginAt { get; set; }
-        public bool IsPremium { get; set; }
-        public string? TimeZone { get; set; }
-        public string? Language { get; set; }
-        
-        // Navigation properties for relationships
-        public virtual ICollection<UserRole> UserRoles { get; set; }
-        public virtual ICollection<IdentityUserClaim<string>> Claims { get; set; }
-        public virtual ICollection<IdentityUserLogin<string>> Logins { get; set; }
-        public virtual ICollection<IdentityUserToken<string>> Tokens { get; set; }
-    }
-}
-```
-
-The navigation properties allow Entity Framework Core to load related data—roles, claims, external logins, and tokens. These are optional but useful if you frequently query related data. Note that if you use a different key type (like `int` instead of `string`), you need to change the generic types in the navigation properties accordingly.
-
-### The IdentityRole Class
-
-`IdentityRole` represents a role that can be assigned to users. Like IdentityUser, it can be extended with custom properties:
-
-```csharp
-using Microsoft.AspNetCore.Identity;
-
-namespace IdentityDemo.Models
-{
-    public class ApplicationRole : IdentityRole
-    {
-        public string? Description { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public bool IsSystemRole { get; set; } // System roles cannot be deleted
-        public string? Department { get; set; } // For department-specific roles
-        
-        // Navigation property for users in this role
-        public virtual ICollection<UserRole> Users { get; set; }
-        
-        // Navigation property for role claims
-        public virtual ICollection<IdentityRoleClaim<string>> RoleClaims { get; set; }
-    }
-}
-```
-
-Role properties might include metadata about when the role was created, whether it's a system role that shouldn't be deleted, department association for organizational hierarchies, or descriptions for admin interfaces. Like users, roles can have claims associated with them—claims that apply to all users in that role.
-
-### Related Entity Types
-
-Identity uses several junction tables to represent relationships between users, roles, and claims:
-
-**IdentityUserRole** links users to roles. This is a many-to-many relationship—a user can have multiple roles, and a role can be assigned to multiple users.
-
-**IdentityUserClaim** stores claims associated with a specific user. Claims are key-value pairs that represent facts about the user, such as permissions or preferences.
-
-**IdentityRoleClaim** stores claims associated with a role. All users in the role inherit these claims.
-
-**IdentityUserLogin** stores external login provider information (Google, Facebook, Microsoft, etc.) linked to a user account.
-
-**IdentityUserToken** stores tokens for the user, such as two-factor authentication tokens or password reset tokens.
-
-These entities are managed automatically by Identity—you typically don't work with them directly. Instead, you use `UserManager` and `RoleManager` methods that handle these relationships internally.
-
-### Using Non-String Primary Keys
-
-By default, Identity uses strings for primary keys (GUIDs stored as strings). You might prefer to use integers or GUIDs for performance or personal preference. To do this, specify the key type when inheriting from the base classes:
-
-```csharp
-// User with integer primary key
-public class ApplicationUser : IdentityUser<int>
-{
-    // Custom properties...
-}
-
-// Role with integer primary key
-public class ApplicationRole : IdentityRole<int>
-{
-    // Custom properties...
-}
-
-// DbContext configuration
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, int>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
 }
-
-// Identity configuration
-builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
 ```
 
-The key type flows through all related entities. `IdentityUserRole<int>`, `IdentityUserClaim<int>`, and so on will be used automatically. This is a significant change that should be decided early, as changing primary key types later requires recreating the database or writing migration scripts.
+Line-by-line:
+- `IdentityDbContext<ApplicationUser>` — this is NOT a plain `DbContext`. It already has `DbSet<ApplicationUser>`, `DbSet<IdentityRole>`, and all the junction table `DbSet`s configured. It also configures table names, indexes, and relationships for Identity entities.
+- The constructor passes `DbContextOptions` to the base — this is where the connection string comes in, configured in `Program.cs`.
 
----
-
-## 6. Database Configuration with Entity Framework Core
-
-### Creating the ApplicationDbContext
-
-The `ApplicationDbContext` is your Entity Framework Core context that includes Identity entities. It inherits from `IdentityDbContext`, which provides DbSet properties for all Identity-related tables and configures the entity mappings. Your application-specific entities go in this same context.
+**`Program.cs` (relevant Identity section):**
 
 ```csharp
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using IdentityDemo.Models;
-
-namespace IdentityDemo.Data
-{
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
-    {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
-
-        // Your application entities
-        public DbSet<Product> Products { get; set; }
-        public DbSet<Order> Orders { get; set; }
-        public DbSet<Category> Categories { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder builder)
-        {
-            base.OnModelCreating(builder);
-
-            // Customize Identity table names
-            builder.Entity<ApplicationUser>(entity =>
-            {
-                entity.ToTable(name: "Users");
-                entity.Property(e => e.Id).HasMaxLength(36);
-            });
-
-            builder.Entity<ApplicationRole>(entity =>
-            {
-                entity.ToTable(name: "Roles");
-                entity.Property(e => e.Id).HasMaxLength(36);
-            });
-
-            builder.Entity<IdentityUserRole<string>>(entity =>
-            {
-                entity.ToTable("UserRoles");
-            });
-
-            builder.Entity<IdentityUserClaim<string>>(entity =>
-            {
-                entity.ToTable("UserClaims");
-            });
-
-            builder.Entity<IdentityUserLogin<string>>(entity =>
-            {
-                entity.ToTable("UserLogins");
-            });
-
-            builder.Entity<IdentityRoleClaim<string>>(entity =>
-            {
-                entity.ToTable("RoleClaims");
-            });
-
-            builder.Entity<IdentityUserToken<string>>(entity =>
-            {
-                entity.ToTable("UserTokens");
-            });
-
-            // Configure custom user properties
-            builder.Entity<ApplicationUser>(entity =>
-            {
-                entity.Property(e => e.FirstName).HasMaxLength(100);
-                entity.Property(e => e.LastName).HasMaxLength(100);
-                entity.Property(e => e.DisplayName).HasMaxLength(200);
-                entity.HasIndex(e => e.Email).IsUnique();
-            });
-
-            // Seed initial data
-            SeedData(builder);
-        }
-
-        private void SeedData(ModelBuilder builder)
-        {
-            // Seed roles
-            var adminRole = new ApplicationRole
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "Admin",
-                NormalizedName = "ADMIN",
-                Description = "Administrator with full access",
-                IsSystemRole = true,
-                CreatedAt = new DateTime(2024, 1, 1)
-            };
-
-            var userRole = new ApplicationRole
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "User",
-                NormalizedName = "USER",
-                Description = "Standard user with limited access",
-                IsSystemRole = true,
-                CreatedAt = new DateTime(2024, 1, 1)
-            };
-
-            builder.Entity<ApplicationRole>().HasData(adminRole, userRole);
-        }
-    }
-}
+// Add Identity services
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options
+    .Password.RequireNonAlphanumeric = false)
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 ```
 
-### Configuring the Connection String
+Line-by-line:
+- `AddDefaultIdentity<ApplicationUser>` — a shortcut that configures cookie authentication + Identity services together. It's simpler than `AddIdentity` but less customizable. For a starter project this is fine; we'll replace it with full `AddIdentity` later for more control.
+- `options.Password.RequireNonAlphanumeric = false` — relaxes the password rule (no special character required). The default requires it, which frustrates demo users.
+- `.AddEntityFrameworkStores<ApplicationDbContext>()` — tells Identity to use EF Core with our `ApplicationDbContext` as the storage backend.
 
-Add a connection string to your `appsettings.json` file. The connection string format depends on your database provider:
+### Step 3 — Install Additional Packages (If Not Using Template)
+
+If you started from a plain `webapi` or `mvc` template without `--auth Individual`:
+
+```bash
+# Core Identity types (UserManager, SignInManager, IdentityUser, etc.)
+dotnet add package Microsoft.AspNetCore.Identity
+
+# Entity Framework Core integration (IdentityDbContext, UserStore, etc.)
+dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+
+# Database provider — SQL Server
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+
+# EF Core tools for migrations (dotnet ef commands)
+dotnet add package Microsoft.EntityFrameworkCore.Tools
+
+# Design-time package (required for dotnet ef to work)
+dotnet add package Microsoft.EntityFrameworkCore.Design
+```
+
+### Step 4 — Verify the Database Connection
+
+Open `appsettings.json` and set a connection string:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=IdentityDemo;Trusted_Connection=True;MultipleActiveResultSets=true"
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*"
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=IdentityTutorial;Trusted_Connection=True;MultipleActiveResultSets=true"
+  }
 }
 ```
 
-For SQL Server with Docker or a remote server:
+For Docker SQL Server:
 ```json
-"DefaultConnection": "Server=localhost,1433;Database=IdentityDemo;User Id=sa;Password=YourPassword123;TrustServerCertificate=True"
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433;Database=IdentityTutorial;User Id=sa;Password=YourStrongPassword123;TrustServerCertificate=True"
+  }
+}
 ```
 
-For PostgreSQL:
-```json
-"DefaultConnection": "Host=localhost;Database=IdentityDemo;Username=postgres;Password=YourPassword"
-```
-
-### Creating and Applying Migrations
-
-Entity Framework Core uses migrations to create and update the database schema. After defining your DbContext and entities, create an initial migration:
+### Step 5 — Run and Explore
 
 ```bash
 # Create the initial migration
 dotnet ef migrations add InitialCreate
 
-# Review the generated migration files in Migrations folder
-# The migration creates tables for: Users, Roles, UserRoles, UserClaims, RoleClaims, UserLogins, UserTokens
-
-# Apply the migration to create the database
+# Apply to create the database
 dotnet ef database update
 
-# To add a new migration after model changes
-dotnet ef migrations add AddUserProfileFields
-
-# To rollback to a specific migration
-dotnet ef database update InitialCreate
-
-# To remove the last migration (if not applied)
-dotnet ef migrations remove
+# Run the project
+dotnet run
 ```
 
-The migration process generates C# code that represents the changes to your database schema. Review this code before applying it—EF Core's migrations are generally reliable, but it's important to understand what changes will be made, especially for production databases. The migration files are stored in the `Migrations` folder and should be committed to source control.
+Navigate to `/Identity/Account/Register` — you'll see the template's built-in registration page. Register a user and verify the `AspNetUsers` table gets populated.
 
-### Database Schema Overview
+### Why This Matters
 
-The Identity schema consists of seven tables (using default names):
-
-1. **AspNetUsers**: Stores user accounts with all properties from IdentityUser and your custom properties.
-
-2. **AspNetRoles**: Stores role definitions.
-
-3. **AspNetUserRoles**: Junction table linking users to roles (many-to-many relationship).
-
-4. **AspNetUserClaims**: Stores claims specific to individual users.
-
-5. **AspNetRoleClaims**: Stores claims associated with roles, inherited by all users in the role.
-
-6. **AspNetUserLogins**: Stores external login provider information (Google, Facebook, etc.).
-
-7. **AspNetUserTokens**: Stores authentication tokens (remember me tokens, two-factor tokens, etc.).
-
-The tables have appropriate indexes for common query patterns: lookups by normalized username, normalized email, and external login provider keys. Foreign key relationships ensure referential integrity. Understanding this schema helps when writing custom queries or troubleshooting data issues.
+The template is great for a starting point, but you need to know what it generated so you can modify it confidently. In later videos we'll replace the template's `AddDefaultIdentity` with a full `AddIdentity` configuration, add custom user properties, and build our own controllers. Knowing the starting point makes those changes intentional rather than mysterious.
 
 ---
 
-## 7. User Registration and Management
+## Video 04 — Configuring Identity Services in Program.cs
 
-### Implementing User Registration
+### What We're Building
 
-User registration involves creating a new user account with valid credentials. The `UserManager` class provides the `CreateAsync` method for this purpose. A complete registration implementation validates input, checks for existing users, creates the user, assigns default roles, and handles email confirmation.
+A complete, production-quality `Program.cs` Identity configuration — replacing the template's simple `AddDefaultIdentity` with full control over every option.
 
-Create an `AccountController` with registration functionality:
+### The Complete Configuration
+
+```csharp
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using IdentityTutorial.Data;
+using IdentityTutorial.Models;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ─────────────────────────────────────────────
+// 1. Entity Framework Core — Database context
+// ─────────────────────────────────────────────
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ─────────────────────────────────────────────
+// 2. Identity Services — the big one
+// ─────────────────────────────────────────────
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    // --- Password settings ---
+    options.Password.RequireDigit = true;           // Must contain 0-9
+    options.Password.RequireLowercase = true;       // Must contain a-z
+    options.Password.RequireUppercase = true;       // Must contain A-Z
+    options.Password.RequireNonAlphanumeric = true; // Must contain !@#$%^&* etc.
+    options.Password.RequiredLength = 8;            // Minimum 8 characters
+    options.Password.RequiredUniqueChars = 1;       // At least 1 distinct character
+
+    // --- Lockout settings ---
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5); // Locked for 5 min
+    options.Lockout.MaxFailedAccessAttempts = 5;   // After 5 failed tries
+    options.Lockout.AllowedForNewUsers = true;     // New accounts can be locked out
+
+    // --- User settings ---
+    options.User.AllowedUserNameCharacters =
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    options.User.RequireUniqueEmail = true;        // No duplicate emails
+
+    // --- Sign-in settings ---
+    options.SignIn.RequireConfirmedEmail = true;       // Must confirm email to log in
+    options.SignIn.RequireConfirmedPhoneNumber = false; // Phone confirmation not required
+    options.SignIn.RequireConfirmedAccount = true;     // Account must be confirmed
+})
+// Tell Identity to use EF Core with our ApplicationDbContext
+.AddEntityFrameworkStores<ApplicationDbContext>()
+// Add the default token providers (email confirmation, password reset, 2FA, etc.)
+.AddDefaultTokenProviders();
+
+// ─────────────────────────────────────────────
+// 3. Cookie Configuration
+// ─────────────────────────────────────────────
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;                    // JavaScript cannot read the cookie (XSS protection)
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // HTTPS only in production
+    options.Cookie.SameSite = SameSiteMode.Lax;        // CSRF protection
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // Cookie expires after 60 minutes
+    options.SlidingExpiration = true;                  // Reset timer on each request (active users stay logged in)
+    options.LoginPath = "/Identity/Account/Login";     // Where to redirect when not authenticated
+    options.LogoutPath = "/Identity/Account/Logout";   // Logout endpoint
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Where to send when authorized but not allowed
+});
+
+// ─────────────────────────────────────────────
+// 4. MVC + Razor Pages
+// ─────────────────────────────────────────────
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+var app = builder.Build();
+
+// ─────────────────────────────────────────────
+// 5. Middleware Pipeline — ORDER MATTERS
+// ─────────────────────────────────────────────
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts(); // HTTP Strict Transport Security
+}
+
+app.UseHttpsRedirection();   // Redirect HTTP → HTTPS
+app.UseStaticFiles();        // Serve CSS, JS, images
+app.UseRouting();            // Route matching
+
+// CRITICAL: Authentication MUST come before Authorization
+app.UseAuthentication();     // Reads the cookie, builds the ClaimsPrincipal
+app.UseAuthorization();      // Checks [Authorize] attributes, policies, roles
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapRazorPages();         // Maps Identity Razor Pages under /Identity
+
+app.Run();
+```
+
+### Line-by-Line Breakdown
+
+**`AddIdentity<ApplicationUser, IdentityRole>`** vs `AddDefaultIdentity`:
+
+- `AddDefaultIdentity<ApplicationUser>` is a convenience method that assumes you only have users (no custom roles), uses the default cookie, and isn't as configurable. Good for simple apps.
+- `AddIdentity<ApplicationUser, IdentityRole>` gives you full control: you specify both the user and role types, configure every option, and can add custom token providers, password validators, etc. This is what we use for the tutorial.
+
+**Password Options:**
+
+| Option | What it does | Demo value | Production value |
+|--------|-------------|------------|-----------------|
+| `RequireDigit` | Must have 0-9 | `true` | `true` |
+| `RequireLowercase` | Must have a-z | `true` | `true` |
+| `RequireUppercase` | Must have A-Z | `true` | `true` |
+| `RequireNonAlphanumeric` | Must have special char | `true` (demo) / `false` (some apps) | `true` or check against breached passwords |
+| `RequiredLength` | Minimum length | `8` | `12` |
+| `RequiredUniqueChars` | Minimum distinct chars | `1` | `3` |
+
+**Lockout Options:**
+
+- `DefaultLockoutTimeSpan` — how long the account stays locked. 5 minutes is fine for demos; 15-30 minutes is better for production.
+- `MaxFailedAccessAttempts` — 5 is a good balance. Lower = more secure but more false positives.
+- `AllowedForNewUsers` — always `true`. You want new accounts protected from day one.
+
+**Sign-In Options:**
+
+- `RequireConfirmedEmail = true` means a user who registered but hasn't clicked the confirmation link cannot log in. This is good for preventing spam accounts.
+- `RequireConfirmedAccount` is a convenience flag you can check in your own logic.
+
+**`AddEntityFrameworkStores<ApplicationDbContext>()`:**
+
+This single line wires up ALL the store interfaces (`IUserStore`, `IUserPasswordStore`, `IUserRoleStore`, `IUserClaimStore`, `IUserLockoutStore`, `IUserSecurityStampStore`, etc.) to EF Core implementations that use your `ApplicationDbContext`. Without this line, Identity doesn't know how to persist anything.
+
+**`AddDefaultTokenProviders()`:**
+
+Registers the built-in token providers:
+
+- `DataProtectorTokenProvider` — for email confirmation, password reset tokens
+- `AuthenticatorTokenProvider` — for TOTP 2FA
+- `PhoneNumberTokenProvider` — for SMS 2FA codes
+- `EmailTokenProvider` — for email-based 2FA codes
+
+These generate cryptographically secure, time-limited tokens tied to the user's security stamp.
+
+**Cookie Configuration:**
+
+- `HttpOnly = true` — prevents JavaScript from reading the auth cookie. This is a critical XSS defense.
+- `SecurePolicy = Always` — only send the cookie over HTTPS. In development you might use `SameAsRequest` to allow HTTP locally.
+- `SameSite = Lax` — cookies are sent with same-site requests and top-level navigations, but not with cross-site sub-requests. This mitigates CSRF.
+- `SlidingExpiration = true` — every request resets the expiration window. A user who's actively using the app stays logged in. Without this, the cookie expires exactly 60 minutes after login regardless of activity.
+
+**Middleware Order:**
+
+```
+app.UseRouting();
+app.UseAuthentication();   // ← must be first
+app.UseAuthorization();    // ← must be second
+```
+
+If you swap these, `[Authorize]` attributes won't work because the cookie hasn't been read yet. This is the #1 Identity bug in new projects.
+
+### Why This Matters
+
+This configuration is the foundation everything else builds on. Get this wrong and nothing else works — users can't log in, roles don't authorize, tokens expire unexpectedly. Getting it right means every feature in later videos works correctly from the start.
+
+---
+
+## Video 05 — The Identity Models — IdentityUser, IdentityRole, and Your Custom Classes
+
+### What We're Building
+
+A deep understanding of every Identity entity, plus custom user and role classes with real application properties.
+
+### IdentityUser — Every Property Explained
+
+```csharp
+// This is what IdentityUser gives you by default (simplified):
+public class IdentityUser
+{
+    // Primary key — a GUID stored as a string by default
+    public string Id { get; set; }
+
+    // What the user types to log in
+    public string? UserName { get; set; }
+
+    // Uppercase version of UserName — used for case-insensitive lookups
+    // Why? "John" and "john" should find the same user
+    public string? NormalizedUserName { get; set; }
+
+    // User's email address
+    public string? Email { get; set; }
+
+    // Uppercase version of Email — used for case-insensitive lookups
+    public string? NormalizedEmail { get; set; }
+
+    // Has the user clicked the email confirmation link?
+    public bool EmailConfirmed { get; set; }
+
+    // The hashed password — NEVER plain text. PBKDF2 + HMAC-SHA256.
+    public string? PasswordHash { get; set; }
+
+    // A random value that changes when security state changes.
+    // When this changes, all existing cookies become invalid.
+    // Used for: password change, role change, 2FA toggle.
+    public string? SecurityStamp { get; set; }
+
+    // Optimistic concurrency token — prevents two requests from
+    // overwriting each other's changes to this user.
+    public string? ConcurrencyStamp { get; set; }
+
+    // Phone number for SMS-based 2FA or account recovery
+    public string? PhoneNumber { get; set; }
+
+    // Has the phone number been confirmed?
+    public bool PhoneNumberConfirmed { get; set; }
+
+    // Is two-factor authentication enabled for this user?
+    public bool TwoFactorEnabled { get; set; }
+
+    // When does the lockout expire? null = not locked out
+    public DateTimeOffset? LockoutEnd { get; set; }
+
+    // Can this user be locked out? Some accounts (service accounts) might be exempt
+    public bool LockoutEnabled { get; set; }
+
+    // Number of failed login attempts since last success/reset
+    // When this reaches MaxFailedAccessAttempts, the account is locked
+    public int AccessFailedCount { get; set; }
+}
+```
+
+### Custom User Class — Adding Application Properties
+
+```csharp
+using Microsoft.AspNetCore.Identity;
+
+namespace IdentityTutorial.Models;
+
+public class ApplicationUser : IdentityUser
+{
+    // ── Personal Information ──
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+
+    // Computed — not stored in the database (includes [NotMapped] implicitly
+    // when using DTOs, but here it's just a read-only property)
+    public string FullName => $"{FirstName} {LastName}".Trim();
+
+    // Display name — could differ from UserName (which is the login identifier)
+    public string? DisplayName { get; set; }
+
+    // Profile picture URL (stored as a string — could be a path or external URL)
+    public string? ProfilePictureUrl { get; set; }
+
+    // ── Contact Information ──
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? Country { get; set; }
+    public string? PostalCode { get; set; }
+
+    // ── Account Metadata ──
+    // When was the account created? Set automatically in registration.
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Last time the user logged in — updated in the SignInManager override
+    public DateTime? LastLoginAt { get; set; }
+
+    // Premium status — could drive authorization decisions
+    public bool IsPremium { get; set; }
+
+    // Preferences
+    public string? TimeZone { get; set; } = "UTC";
+    public string? Language { get; set; } = "en";
+
+    // ── Navigation Properties (for EF Core relationships) ──
+    // These let you load related data: roles, claims, external logins, tokens.
+    // The types match the key type — string here because we're using the default GUID string key.
+    public virtual ICollection<IdentityUserRole<string>> UserRoles { get; set; }
+    public virtual ICollection<IdentityUserClaim<string>> Claims { get; set; }
+    public virtual ICollection<IdentityUserLogin<string>> Logins { get; set; }
+    public virtual ICollection<IdentityUserToken<string>> Tokens { get; set; }
+}
+```
+
+Line-by-line highlights:
+- `public class ApplicationUser : IdentityUser` — inherits every property from IdentityUser. Our custom properties are added on top.
+- `FullName` — a computed property. It's not stored in the database; it's derived from `FirstName` and `LastName` when accessed.
+- `CreatedAt = DateTime.UtcNow` — default value set when a new user is created. Using UTC avoids timezone issues.
+- `virtual ICollection<...>` — `virtual` enables EF Core lazy-loading proxies (if configured). These navigation properties let you load a user's roles, claims, etc. in a single query.
+
+### Custom Role Class
+
+```csharp
+using Microsoft.AspNetCore.Identity;
+
+namespace IdentityTutorial.Models;
+
+public class ApplicationRole : IdentityRole
+{
+    // Human-readable description of what this role can do
+    public string? Description { get; set; }
+
+    // When the role was created
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // System roles (Admin, User) shouldn't be deleted by admins
+    public bool IsSystemRole { get; set; }
+
+    // Department or team this role belongs to (for org hierarchies)
+    public string? Department { get; set; }
+
+    // Navigation property for users in this role
+    public virtual ICollection<IdentityUserRole<string>> Users { get; set; }
+
+    // Navigation property for claims associated with this role
+    public virtual ICollection<IdentityRoleClaim<string>> RoleClaims { get; set; }
+}
+```
+
+### Using Integer Keys Instead of Strings
+
+By default, Identity uses `string` keys (GUIDs stored as strings). If you prefer integers:
+
+```csharp
+// User with int primary key
+public class ApplicationUser : IdentityUser<int>
+{
+    // Custom properties...
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+}
+
+// Role with int primary key
+public class ApplicationRole : IdentityRole<int>
+{
+    public string? Description { get; set; }
+}
+
+// DbContext must match the key types
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, int>
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options) { }
+}
+
+// Identity configuration must match
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+```
+
+**Important:** The key type flows through EVERY Identity entity — `IdentityUserRole<int>`, `IdentityUserClaim<int>`, `IdentityUserLogin<int>`, etc. This is a commitment you make at the start. Changing later requires recreating the database.
+
+### Why This Matters
+
+Most tutorials stop at `IdentityUser` with no custom properties. But real applications need FirstName, LastName, avatars, preferences, subscription status, etc. Knowing how to extend IdentityUser correctly — and understanding what each base property does — is the difference between a hacked-on solution and a clean, maintainable user model.
+
+---
+
+## Video 06 — Database Setup — IdentityDbContext, Connection Strings, Migrations
+
+### What We're Building
+
+A fully configured `ApplicationDbContext` with custom table names, seed data for default roles, entity configuration, and a completed migration that creates all Identity tables.
+
+### The ApplicationDbContext
+
+```csharp
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using IdentityTutorial.Models;
+
+namespace IdentityTutorial.Data;
+
+// IdentityDbContext<TUser, TRole, TKey> is the base.
+// It already has DbSet<TUser>, DbSet<TRole>, and all junction tables configured.
+// We're using string keys (default GUID), so TKey = string.
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+        // The base constructor registers the connection string from Program.cs.
+        // No additional setup needed here.
+    }
+
+    // ── Your application entities (in the same database, same context) ──
+    // Example: if your app has products, orders, etc., add them here.
+    // They share the same database and can participate in the same transactions.
+    // public DbSet<Product> Products { get; set; }
+    // public DbSet<Order> Orders { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        // ─────────────────────────────────────────────
+        // Call the base first — this configures all Identity entities:
+        // table names, column types, indexes, relationships.
+        // ─────────────────────────────────────────────
+        base.OnModelCreating(builder);
+
+        // ─────────────────────────────────────────────
+        // Customize table names (optional — defaults are AspNetUsers, AspNetRoles, etc.)
+        // ─────────────────────────────────────────────
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.ToTable(name: "Users"); // Rename from AspNetUsers to Users
+            entity.Property(e => e.Id).HasMaxLength(36); // GUID string length
+        });
+
+        builder.Entity<ApplicationRole>(entity =>
+        {
+            entity.ToTable(name: "Roles"); // Rename from AspNetRoles to Roles
+            entity.Property(e => e.Id).HasMaxLength(36);
+        });
+
+        // Junction tables
+        builder.Entity<IdentityUserRole<string>>(entity =>
+        {
+            entity.ToTable("UserRoles");
+        });
+
+        builder.Entity<IdentityUserClaim<string>>(entity =>
+        {
+            entity.ToTable("UserClaims");
+        });
+
+        builder.Entity<IdentityUserLogin<string>>(entity =>
+        {
+            entity.ToTable("UserLogins");
+        });
+
+        builder.Entity<IdentityRoleClaim<string>>(entity =>
+        {
+            entity.ToTable("RoleClaims");
+        });
+
+        builder.Entity<IdentityUserToken<string>>(entity =>
+        {
+            entity.ToTable("UserTokens");
+        });
+
+        // ─────────────────────────────────────────────
+        // Configure custom user properties
+        // ─────────────────────────────────────────────
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.DisplayName).HasMaxLength(200);
+
+            // Ensure email is unique (in addition to NormalizedEmail index that Identity creates)
+            entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        // ─────────────────────────────────────────────
+        // Seed initial data — roles that must exist from the start
+        // ─────────────────────────────────────────────
+        SeedData(builder);
+    }
+
+    private void SeedData(ModelBuilder builder)
+    {
+        // Seed the "Admin" role
+        var adminRole = new ApplicationRole
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Admin",
+            NormalizedName = "ADMIN",     // Uppercase for case-insensitive matching
+            Description = "Administrator with full access to all features",
+            IsSystemRole = true,          // Cannot be deleted
+            CreatedAt = new DateTime(2024, 1, 1)
+        };
+
+        // Seed the "User" role
+        var userRole = new ApplicationRole
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "User",
+            NormalizedName = "USER",
+            Description = "Standard user with basic access",
+            IsSystemRole = true,
+            CreatedAt = new DateTime(2024, 1, 1)
+        };
+
+        // HasData registers these as seed data — they'll be inserted
+        // when the migration is applied and the table is empty.
+        builder.Entity<ApplicationRole>().HasData(adminRole, userRole);
+    }
+}
+```
+
+### Connection String Configuration
+
+In `appsettings.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=IdentityTutorial;Trusted_Connection=True;MultipleActiveResultSets=true"
+  }
+}
+```
+
+The connection string is read in `Program.cs`:
+
+```csharp
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+```
+
+### Migrations — Step by Step
+
+```bash
+# 1. Install the EF Core tools (if not already)
+dotnet tool install --global dotnet-ef
+
+# 2. Add the design package (project-local)
+dotnet add package Microsoft.EntityFrameworkCore.Design
+
+# 3. Create the initial migration
+# This scans your DbContext, detects all entities, and generates
+# CreateTable calls for each one.
+dotnet ef migrations add InitialCreate
+
+# 4. Review the generated migration file in the Migrations/ folder.
+# It should contain CreateTable for: Users, Roles, UserRoles, UserClaims,
+# RoleClaims, UserLogins, UserTokens, plus whatever custom entities you added.
+
+# 5. Apply the migration — this creates the database and tables
+dotnet ef database update
+
+# 6. Later, when you add a property to ApplicationUser:
+dotnet ef migrations add AddFirstNameToUser
+
+# 7. Apply the new migration
+dotnet ef database update
+
+# 8. To roll back (e.g., if a migration has a mistake):
+dotnet ef database update <PreviousMigrationName>
+
+# 9. To remove the last unapplied migration:
+dotnet ef migrations remove
+```
+
+### What the Migration Creates
+
+The initial migration generates these tables (using our custom names):
+
+| Table | Purpose |
+|-------|---------|
+| `Users` | All user accounts + custom properties (FirstName, LastName, etc.) |
+| `Roles` | All roles (Admin, User, plus any you create later) |
+| `UserRoles` | Many-to-many: which users are in which roles |
+| `UserClaims` | Claims directly assigned to individual users |
+| `RoleClaims` | Claims assigned to roles (inherited by all users in the role) |
+| `UserLogins` | External login providers linked to user accounts (Google, Facebook, etc.) |
+| `UserTokens` | Tokens for 2FA, password reset, email confirmation, "remember me" |
+
+Indexes created automatically:
+- `NormalizedUserName` — for fast case-insensitive username lookups
+- `NormalizedEmail` — for fast case-insensitive email lookups
+- `Role.Name` / `Role.NormalizedName` — for fast role lookups
+- Foreign keys on all junction tables for referential integrity
+
+### Why This Matters
+
+The database is where Identity lives. Understanding the schema means you can write raw SQL queries when needed, debug data issues, and understand what EF Core is doing behind the scenes. Seeding default roles means your app has the basic roles ready on first run — no manual setup required.
+
+---
+
+## Video 07 — User Registration — Building the Complete Flow
+
+### What We're Building
+
+A complete registration system: a ViewModel with validation, a register controller that creates the user, assigns a default role, generates an email confirmation token, sends the confirmation email, and handles both "email confirmation required" and "not required" scenarios.
+
+### The Registration ViewModel
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+
+namespace IdentityTutorial.ViewModels;
+
+public class RegisterViewModel
+{
+    // ── Username ──
+    [Required(ErrorMessage = "Username is required")]
+    [StringLength(50, MinimumLength = 3,
+        ErrorMessage = "Username must be between 3 and 50 characters")]
+    [RegularExpression(@"^[a-zA-Z0-9_]+$",
+        ErrorMessage = "Username can only contain letters, numbers, and underscores")]
+    public string UserName { get; set; } = string.Empty;
+
+    // ── Email ──
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address")]
+    public string Email { get; set; } = string.Empty;
+
+    // ── Personal Info ──
+    [Required(ErrorMessage = "First name is required")]
+    [StringLength(100)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Last name is required")]
+    [StringLength(100)]
+    public string LastName { get; set; } = string.Empty;
+
+    // ── Password ──
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(100, MinimumLength = 8,
+        ErrorMessage = "Password must be at least 8 characters")]
+    [DataType(DataType.Password)] // Renders as <input type="password"> in Razor
+    public string Password { get; set; } = string.Empty;
+
+    // ── Confirm Password ──
+    [Required(ErrorMessage = "Please confirm your password")]
+    [DataType(DataType.Password)]
+    [Compare("Password", ErrorMessage = "Passwords do not match")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+```
+
+Line-by-line on validation attributes:
+- `[Required]` — the field must not be null or empty. If it is, ModelState.IsValid returns false and the error message displays.
+- `[StringLength(50, MinimumLength = 3)]` — enforces length bounds. Both max and min are checked.
+- `[RegularExpression(@"^[a-zA-Z0-9_]+$")]` — only allows letters, numbers, underscores. Prevents special characters that could cause issues in URLs or downstream systems.
+- `[EmailAddress]` — validates the format is a recognizable email.
+- `[Compare("Password")]` — ensures ConfirmPassword matches Password. This is a built-in comparison that works across properties.
+- `[DataType(DataType.Password)]` — tells Razor to render `<input type="password">` so the password isn't visible as the user types.
+
+### The Account Controller — Registration
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
-using IdentityDemo.Models;
-using IdentityDemo.ViewModels;
+using IdentityTutorial.Models;
+using IdentityTutorial.ViewModels;
 
-namespace IdentityDemo.Controllers
-{
-    public class AccountController : Controller
-    {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly RoleManager<ApplicationRole> _roleManager;
-        private readonly IEmailService _emailService;
-        private readonly ILogger<AccountController> _logger;
+namespace IdentityTutorial.Controllers;
 
-        public AccountController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            RoleManager<ApplicationRole> roleManager,
-            IEmailService emailService,
-            ILogger<AccountController> logger)
-        {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _roleManager = roleManager;
-            _emailService = emailService;
-            _logger = logger;
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult Register()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            // Check if email already exists
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
-            if (existingUser != null)
-            {
-                ModelState.AddModelError(string.Empty, "Email is already registered.");
-                return View(model);
-            }
-
-            // Create the user
-            var user = new ApplicationUser
-            {
-                UserName = model.UserName,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                CreatedAt = DateTime.UtcNow,
-                EmailConfirmed = false
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-
-            if (result.Succeeded)
-            {
-                _logger.LogInformation("User created a new account: {Email}", model.Email);
-
-                // Assign default "User" role
-                await _userManager.AddToRoleAsync(user, "User");
-
-                // Generate email confirmation token
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = Url.Action(
-                    "ConfirmEmail",
-                    "Account",
-                    new { userId = user.Id, token = token },
-                    Request.Scheme);
-
-                // Send confirmation email
-                await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
-
-                // If email confirmation is not required, sign in immediately
-                if (!_userManager.Options.SignIn.RequireConfirmedEmail)
-                {
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Index", "Home");
-                }
-
-                return RedirectToAction("RegisterConfirmation");
-            }
-
-            // Add errors to model state
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-
-            return View(model);
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult RegisterConfirmation()
-        {
-            return View();
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
-        {
-            if (userId == null || token == null)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{userId}'.");
-            }
-
-            var result = await _userManager.ConfirmEmailAsync(user, token);
-            if (result.Succeeded)
-            {
-                return View("ConfirmEmailSuccess");
-            }
-
-            return View("ConfirmEmailFailure");
-        }
-    }
-}
-```
-
-### Creating the Registration ViewModel
-
-```csharp
-using System.ComponentModel.DataAnnotations;
-
-namespace IdentityDemo.ViewModels
-{
-    public class RegisterViewModel
-    {
-        [Required(ErrorMessage = "Username is required")]
-        [StringLength(50, MinimumLength = 3, ErrorMessage = "Username must be between 3 and 50 characters")]
-        [RegularExpression(@"^[a-zA-Z0-9_]+$", ErrorMessage = "Username can only contain letters, numbers, and underscores")]
-        public string UserName { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email address")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "First name is required")]
-        [StringLength(100)]
-        public string FirstName { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Last name is required")]
-        [StringLength(100)]
-        public string LastName { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Password is required")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters")]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Please confirm your password")]
-        [DataType(DataType.Password)]
-        [Compare("Password", ErrorMessage = "Passwords do not match")]
-        public string ConfirmPassword { get; set; } = string.Empty;
-    }
-}
-```
-
-### User Management Operations
-
-Beyond registration, applications need to support various user management operations: viewing profiles, updating information, changing passwords, and account deletion. Here's a comprehensive `UserManagementController` for admin operations:
-
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
-public class UserManagementController : ControllerBase
-{
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<ApplicationRole> _roleManager;
-
-    public UserManagementController(
-        UserManager<ApplicationUser> userManager,
-        RoleManager<ApplicationRole> roleManager)
-    {
-        _userManager = userManager;
-        _roleManager = roleManager;
-    }
-
-    /// <summary>
-    /// Get all users with pagination
-    /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        var users = _userManager.Users
-            .OrderBy(u => u.UserName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(u => new UserListViewModel
-            {
-                Id = u.Id,
-                UserName = u.UserName!,
-                Email = u.Email!,
-                FirstName = u.FirstName!,
-                LastName = u.LastName!,
-                EmailConfirmed = u.EmailConfirmed,
-                IsLockedOut = u.LockoutEnd.HasValue && u.LockoutEnd > DateTimeOffset.UtcNow,
-                CreatedAt = u.CreatedAt
-            })
-            .ToList();
-
-        var totalUsers = _userManager.Users.Count();
-
-        return Ok(new
-        {
-            Users = users,
-            TotalCount = totalUsers,
-            Page = page,
-            PageSize = pageSize,
-            TotalPages = (int)Math.Ceiling(totalUsers / (double)pageSize)
-        });
-    }
-
-    /// <summary>
-    /// Get a specific user by ID
-    /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetUser(string id)
-    {
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null)
-        {
-            return NotFound(new { Message = "User not found" });
-        }
-
-        var roles = await _userManager.GetRolesAsync(user);
-        var claims = await _userManager.GetClaimsAsync(user);
-
-        return Ok(new UserDetailsViewModel
-        {
-            Id = user.Id,
-            UserName = user.UserName!,
-            Email = user.Email!,
-            FirstName = user.FirstName!,
-            LastName = user.LastName!,
-            EmailConfirmed = user.EmailConfirmed,
-            PhoneNumber = user.PhoneNumber,
-            TwoFactorEnabled = user.TwoFactorEnabled,
-            Roles = roles.ToList(),
-            Claims = claims.Select(c => new { c.Type, c.Value }).ToList(),
-            CreatedAt = user.CreatedAt,
-            LastLoginAt = user.LastLoginAt
-        });
-    }
-
-    /// <summary>
-    /// Update user information
-    /// </summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserViewModel model)
-    {
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null)
-        {
-            return NotFound(new { Message = "User not found" });
-        }
-
-        user.FirstName = model.FirstName;
-        user.LastName = model.LastName;
-        user.PhoneNumber = model.PhoneNumber;
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
-        }
-
-        return Ok(new { Message = "User updated successfully" });
-    }
-
-    /// <summary>
-    /// Delete a user
-    /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(string id)
-    {
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null)
-        {
-            return NotFound(new { Message = "User not found" });
-        }
-
-        // Prevent deleting the last admin
-        var admins = await _userManager.GetUsersInRoleAsync("Admin");
-        if (admins.Count == 1 && await _userManager.IsInRoleAsync(user, "Admin"))
-        {
-            return BadRequest(new { Message = "Cannot delete the last administrator" });
-        }
-
-        var result = await _userManager.DeleteAsync(user);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
-        }
-
-        return Ok(new { Message = "User deleted successfully" });
-    }
-
-    /// <summary>
-    /// Change user password (admin override)
-    /// </summary>
-    [HttpPost("{id}/change-password")]
-    public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordViewModel model)
-    {
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null)
-        {
-            return NotFound(new { Message = "User not found" });
-        }
-
-        // Remove existing password and set new one
-        var removeResult = await _userManager.RemovePasswordAsync(user);
-        if (!removeResult.Succeeded)
-        {
-            return BadRequest(new { Errors = removeResult.Errors.Select(e => e.Description) });
-        }
-
-        var addResult = await _userManager.AddPasswordAsync(user, model.NewPassword);
-        if (!addResult.Succeeded)
-        {
-            return BadRequest(new { Errors = addResult.Errors.Select(e => e.Description) });
-        }
-
-        return Ok(new { Message = "Password changed successfully" });
-    }
-
-    /// <summary>
-    /// Lock a user account
-    /// </summary>
-    [HttpPost("{id}/lock")]
-    public async Task<IActionResult> LockUser(string id, [FromBody] LockUserViewModel model)
-    {
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null)
-        {
-            return NotFound(new { Message = "User not found" });
-        }
-
-        // Prevent locking the last admin
-        var admins = await _userManager.GetUsersInRoleAsync("Admin");
-        if (admins.Count == 1 && await _userManager.IsInRoleAsync(user, "Admin"))
-        {
-            return BadRequest(new { Message = "Cannot lock the last administrator" });
-        }
-
-        var lockoutEnd = model.LockoutDurationMinutes > 0
-            ? DateTimeOffset.UtcNow.AddMinutes(model.LockoutDurationMinutes)
-            : DateTimeOffset.MaxValue; // Permanent lock
-
-        var result = await _userManager.SetLockoutEndDateAsync(user, lockoutEnd);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
-        }
-
-        return Ok(new { Message = "User account locked" });
-    }
-
-    /// <summary>
-    /// Unlock a user account
-    /// </summary>
-    [HttpPost("{id}/unlock")]
-    public async Task<IActionResult> UnlockUser(string id)
-    {
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null)
-        {
-            return NotFound(new { Message = "User not found" });
-        }
-
-        var result = await _userManager.SetLockoutEndDateAsync(user, null);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
-        }
-
-        // Reset failed access count
-        await _userManager.ResetAccessFailedCountAsync(user);
-
-        return Ok(new { Message = "User account unlocked" });
-    }
-}
-```
-
----
-
-## 8. User Authentication (Login/Logout)
-
-### Implementing Login Functionality
-
-The login process validates user credentials and creates an authentication session. `SignInManager` provides the `PasswordSignInAsync` method that handles the complete flow: checking the password, handling lockout, and creating the authentication cookie.
-
-```csharp
 public class AccountController : Controller
 {
+    // ── Dependencies ──
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ILogger<AccountController> _logger;
 
-    [HttpGet]
-    [AllowAnonymous]
-    public IActionResult Login(string? returnUrl = null)
+    // In a real app, you'd also inject an email service.
+    // For the demo, we'll show the token generation and explain that
+    // the email sending step is where you'd plug in SendGrid, SMTP, etc.
+    // private readonly IEmailService _emailService;
+
+    public AccountController(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        ILogger<AccountController> logger)
     {
-        ViewData["ReturnUrl"] = returnUrl;
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _logger = logger;
+    }
+
+    // ─────────────────────────────────────────────
+    // GET /Account/Register — Show the registration form
+    // ─────────────────────────────────────────────
+    [HttpGet]
+    [AllowAnonymous] // Anyone can see the registration page — no login required
+    public IActionResult Register()
+    {
         return View();
     }
 
+    // ─────────────────────────────────────────────
+    // POST /Account/Register — Process the registration
+    // ─────────────────────────────────────────────
     [HttpPost]
     [AllowAnonymous]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+    [ValidateAntiForgeryToken] // Prevents CSRF attacks on form submissions
+    public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-
+        // ── Step 1: Check model validity ──
+        // DataAnnotations on the ViewModel + [ValidateAntiForgeryToken]
+        // are validated here. If invalid, return to the form with errors.
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        // Find user by email or username
-        var user = await _userManager.FindByEmailAsync(model.Email)
-                   ?? await _userManager.FindByNameAsync(model.Email);
-
-        if (user == null)
+        // ── Step 2: Check if email is already registered ──
+        // UserManager.FindByEmailAsync does a case-insensitive lookup
+        // (because NormalizedEmail is stored uppercase).
+        var existingUser = await _userManager.FindByEmailAsync(model.Email);
+        if (existingUser != null)
         {
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            ModelState.AddModelError(string.Empty,
+                "An account with this email already exists.");
             return View(model);
         }
 
-        // Check if email confirmation is required and not confirmed
-        if (_userManager.Options.SignIn.RequireConfirmedEmail && !user.EmailConfirmed)
+        // ── Step 3: Create the user object ──
+        // We set properties from the ViewModel. Note: we DON'T set PasswordHash —
+        // that's done internally by UserManager.CreateAsync using the password hasher.
+        var user = new ApplicationUser
         {
-            ModelState.AddModelError(string.Empty, "Please confirm your email before logging in.");
-            return View(model);
-        }
+            UserName = model.UserName,
+            Email = model.Email,
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            CreatedAt = DateTime.UtcNow,
+            EmailConfirmed = false // Will be set to true when they click the confirmation link
+        };
 
-        // Check if account is locked out
-        if (await _userManager.IsLockedOutAsync(user))
-        {
-            var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
-            var remainingTime = lockoutEnd - DateTimeOffset.UtcNow;
-            
-            ModelState.AddModelError(string.Empty, 
-                $"Account is locked out. Try again in {remainingTime?.Minutes ?? 0} minutes.");
-            return View(model);
-        }
+        // ── Step 4: Create the user in the database ──
+        // UserManager.CreateAsync does several things internally:
+        //   1. Validates the password against PasswordOptions + any custom validators
+        //   2. Hashes the password using PBKDF2 + HMAC-SHA256
+        //   3. Sets the normalized username and email (uppercase versions)
+        //   4. Generates a SecurityStamp and ConcurrencyStamp
+        //   5. Saves the user to the database via the user store
+        // The result tells us if it succeeded and any errors if it failed.
+        var result = await _userManager.CreateAsync(user, model.Password);
 
-        // Attempt to sign in
-        var result = await _signInManager.PasswordSignInAsync(
-            user.UserName!,
-            model.Password,
-            model.RememberMe,
-            lockoutOnFailure: true);
-
+        // ── Step 5: Handle success ──
         if (result.Succeeded)
         {
-            _logger.LogInformation("User logged in: {Email}", model.Email);
+            _logger.LogInformation("User created a new account: {Email}", model.Email);
 
-            // Update last login time
-            user.LastLoginAt = DateTime.UtcNow;
-            await _userManager.UpdateAsync(user);
+            // ── Step 5a: Assign the default "User" role ──
+            // Every new user gets the "User" role. Admins are created separately.
+            // This role assignment creates a row in the UserRoles junction table.
+            await _userManager.AddToRoleAsync(user, "User");
 
-            // Redirect to return URL or home
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            // ── Step 5b: Generate email confirmation token ──
+            // This generates a time-limited, cryptographically secure token
+            // that's tied to the user's SecurityStamp. If the security stamp
+            // changes before the user clicks the link, the token becomes invalid.
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            // ── Step 5c: Build the confirmation link ──
+            // Url.Action generates a URL like:
+            //   https://yourapp.com/Account/ConfirmEmail?userId=<guid>&token=<token>
+            // The token is passed as a query parameter. In production, you'd
+            // send this link via email. For the demo, we'll show it on a page.
+            var confirmationLink = Url.Action(
+                actionName: "ConfirmEmail",
+                controllerName: "Account",
+                values: new { userId = user.Id, token = token },
+                protocol: Request.Scheme);
+
+            // ── Step 5d: In a real app, send the email here ──
+            // await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
+            // For the tutorial demo, we'll display the link on the confirmation page.
+
+            // ── Step 5e: If email confirmation is NOT required, sign in immediately ──
+            // Some apps skip email confirmation. In that case, log the user in right away.
+            if (!_userManager.Options.SignIn.RequireConfirmedEmail)
             {
-                return Redirect(returnUrl);
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                return RedirectToAction("Index", "Home");
             }
 
-            return RedirectToAction("Index", "Home");
+            // ── Step 5f: If confirmation IS required, show the confirmation page ──
+            // The user needs to check their email and click the link.
+            return RedirectToAction("RegisterConfirmation");
         }
 
-        if (result.IsLockedOut)
+        // ── Step 6: Handle errors ──
+        // IdentityResult.Errors contains a list of IdentityError objects
+        // with Code and Description properties.
+        // Common errors: "PasswordTooShort", "EmailAlreadyRegistered",
+        // "UserNameAlreadyTaken", etc.
+        foreach (var error in result.Errors)
         {
-            _logger.LogWarning("User account locked out: {Email}", model.Email);
-            return RedirectToAction("Lockout");
+            ModelState.AddModelError(string.Empty, error.Description);
         }
 
-        if (result.IsNotAllowed)
-        {
-            ModelState.AddModelError(string.Empty, "Account not allowed to sign in. Please confirm your email.");
-            return View(model);
-        }
-
-        if (result.RequiresTwoFactor)
-        {
-            return RedirectToAction("LoginWith2fa", new { returnUrl, model.RememberMe });
-        }
-
-        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+        // Return to the form with the errors displayed
         return View(model);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
-    {
-        var userName = User.Identity?.Name;
-        await _signInManager.SignOutAsync();
-        _logger.LogInformation("User logged out: {UserName}", userName);
-        return RedirectToAction("Index", "Home");
-    }
-
+    // ─────────────────────────────────────────────
+    // GET /Account/RegisterConfirmation — Show "check your email" page
+    // ─────────────────────────────────────────────
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult Lockout()
+    public IActionResult RegisterConfirmation()
     {
         return View();
     }
 
+    // ─────────────────────────────────────────────
+    // GET /Account/ConfirmEmail — Handle the confirmation link click
+    // ─────────────────────────────────────────────
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult AccessDenied()
+    public async Task<IActionResult> ConfirmEmail(string userId, string token)
     {
-        return View();
+        // Validate parameters
+        if (userId == null || token == null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        // Look up the user by ID
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return NotFound($"Unable to load user with ID '{userId}'.");
+        }
+
+        // Confirm the email — this validates the token and sets EmailConfirmed = true
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+
+        if (result.Succeeded)
+        {
+            // Show success page
+            return View("ConfirmEmailSuccess");
+        }
+
+        // If the token was invalid or expired, show failure page
+        return View("ConfirmEmailFailure");
     }
 }
 ```
 
-### Login ViewModel
+### The Email Confirmation View (Simplified)
+
+```cshtml
+@* Views/Account/RegisterConfirmation.cshtml *@
+@{
+    ViewData["Title"] = "Register Confirmation";
+}
+
+<div class="container">
+    <h2>Check your email</h2>
+    <p>
+        We've sent a confirmation link to your email address.
+        Click the link to confirm your account and activate it.
+    </p>
+    <p>
+        <strong>Note for demo:</strong> In development, you can find the
+        confirmation link in the application logs or by querying the token directly.
+    </p>
+</div>
+```
+
+### Why This Matters
+
+Registration seems simple — create a user, done. But a complete registration flow includes: input validation, duplicate checking, password hashing, role assignment, email confirmation token generation, and handling both confirmed and unconfirmed states. Each step has a security implication, and skipping any of them creates a gap. This video shows the complete, correct flow.
+
+---
+
+## Video 08 — Login & Sign-In — How Authentication Actually Works
+
+### What We're Building
+
+A complete login flow: a login ViewModel, a login controller that finds the user, checks lockout and email confirmation, calls `PasswordSignInAsync`, handles all possible outcomes (success, locked out, not allowed, 2FA required), and a logout action.
+
+### The Login ViewModel
 
 ```csharp
+using System.ComponentModel.DataAnnotations;
+
+namespace IdentityTutorial.ViewModels;
+
 public class LoginViewModel
 {
     [Required(ErrorMessage = "Email or username is required")]
@@ -1224,132 +1183,220 @@ public class LoginViewModel
 
     [Display(Name = "Remember me?")]
     public bool RememberMe { get; set; }
-
-    public string? ReturnUrl { get; set; }
 }
 ```
 
-### Password Reset Flow
-
-Password reset is a critical security feature. The flow involves generating a reset token, sending it via email, and validating it when the user submits the new password:
+### The Login Actions
 
 ```csharp
+// Inside AccountController (continued from Video 07)
+
+// ─────────────────────────────────────────────
+// GET /Account/Login — Show the login form
+// ─────────────────────────────────────────────
 [HttpGet]
 [AllowAnonymous]
-public IActionResult ForgotPassword()
+public IActionResult Login(string? returnUrl = null)
 {
+    // Store the return URL so we can redirect back after login
+    ViewData["ReturnUrl"] = returnUrl;
     return View();
 }
 
+// ─────────────────────────────────────────────
+// POST /Account/Login — Process the login
+// ─────────────────────────────────────────────
 [HttpPost]
 [AllowAnonymous]
 [ValidateAntiForgeryToken]
-public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
 {
+    ViewData["ReturnUrl"] = returnUrl;
+
     if (!ModelState.IsValid)
     {
         return View(model);
     }
 
-    var user = await _userManager.FindByEmailAsync(model.Email);
-    if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
-    {
-        // Don't reveal that the user does not exist or is not confirmed
-        return RedirectToAction("ForgotPasswordConfirmation");
-    }
+    // ── Step 1: Find the user ──
+    // Try email first (most common), then fall back to username.
+    // Both lookups are case-insensitive because Identity stores
+    // NormalizedEmail and NormalizedUserName in uppercase.
+    var user = await _userManager.FindByEmailAsync(model.Email)
+               ?? await _userManager.FindByNameAsync(model.Email);
 
-    // Generate reset token
-    var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-    var resetLink = Url.Action(
-        "ResetPassword",
-        "Account",
-        new { email = model.Email, token = token },
-        Request.Scheme);
-
-    // Send email
-    await _emailService.SendPasswordResetEmailAsync(model.Email, resetLink);
-
-    return RedirectToAction("ForgotPasswordConfirmation");
-}
-
-[HttpGet]
-[AllowAnonymous]
-public IActionResult ForgotPasswordConfirmation()
-{
-    return View();
-}
-
-[HttpGet]
-[AllowAnonymous]
-public IActionResult ResetPassword(string? email, string? token)
-{
-    if (email == null || token == null)
-    {
-        return BadRequest("Invalid password reset link.");
-    }
-
-    return View(new ResetPasswordViewModel { Email = email, Token = token });
-}
-
-[HttpPost]
-[AllowAnonymous]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
-{
-    if (!ModelState.IsValid)
-    {
-        return View(model);
-    }
-
-    var user = await _userManager.FindByEmailAsync(model.Email);
+    // ── Step 2: Check if user exists ──
+    // IMPORTANT: Don't reveal whether the email exists or not.
+    // The error message is generic for both "user not found" and
+    // "wrong password" to prevent username enumeration attacks.
     if (user == null)
     {
-        // Don't reveal that the user does not exist
-        return RedirectToAction("ResetPasswordConfirmation");
+        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+        return View(model);
     }
 
-    var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
+    // ── Step 3: Check email confirmation requirement ──
+    // If the app requires confirmed email and this user hasn't confirmed,
+    // block the login with a helpful message.
+    if (_userManager.Options.SignIn.RequireConfirmedEmail
+        && !user.EmailConfirmed)
+    {
+        ModelState.AddModelError(string.Empty,
+            "Please confirm your email before logging in.");
+        return View(model);
+    }
+
+    // ── Step 4: Check if the account is locked out ──
+    // UserManager.IsLockedOutAsync checks if LockoutEnd > DateTimeOffset.UtcNow
+    if (await _userManager.IsLockedOutAsync(user))
+    {
+        var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+        var remainingMinutes = (lockoutEnd - DateTimeOffset.UtcNow).Minutes;
+
+        ModelState.AddModelError(string.Empty,
+            $"Account is locked. Try again in {remainingMinutes} minutes.");
+        return View(model);
+    }
+
+    // ── Step 5: Attempt to sign in ──
+    // PasswordSignInAsync does the heavy lifting:
+    //   1. Gets the password hash from the user store
+    //   2. Hashes the provided password with the same salt
+    //   3. Compares the hashes
+    //   4. If match: checks lockout (if lockoutOnFailure is true)
+    //   5. If not locked out: creates the authentication cookie
+    //   6. Returns SignInResult with Succeeded, IsLockedOut, IsNotAllowed,
+    //      or RequiresTwoFactor
+    var result = await _signInManager.PasswordSignInAsync(
+        userName: user.UserName!,
+        password: model.Password,
+        isPersistent: model.RememberMe,  // "Remember me" = longer-lived cookie
+        lockoutOnFailure: true);          // Increment AccessFailedCount on wrong password
+
+    // ── Step 6: Handle the result ──
     if (result.Succeeded)
     {
-        // Update security stamp to invalidate other sessions
-        await _userManager.UpdateSecurityStampAsync(user);
-        return RedirectToAction("ResetPasswordConfirmation");
+        _logger.LogInformation("User logged in: {Email}", model.Email);
+
+        // Update the last login timestamp
+        user.LastLoginAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
+        // Redirect to the return URL if it's local (not an external site)
+        if (!string.IsNullOrEmpty(returnUrl)
+            && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        // Default redirect
+        return RedirectToAction("Index", "Home");
     }
 
-    foreach (var error in result.Errors)
+    if (result.IsLockedOut)
     {
-        ModelState.AddModelError(string.Empty, error.Description);
+        // This means the account was ALREADY locked out before this attempt.
+        // (As opposed to this attempt causing the lockout.)
+        _logger.LogWarning("User account locked out: {Email}", model.Email);
+        return RedirectToAction("Lockout");
     }
 
+    if (result.IsNotAllowed)
+    {
+        // The account exists but isn't allowed to sign in.
+        // This could be because email isn't confirmed, phone isn't confirmed,
+        // or the account is disabled.
+        ModelState.AddModelError(string.Empty,
+            "Account not allowed to sign in. Please confirm your email.");
+        return View(model);
+    }
+
+    if (result.RequiresTwoFactor)
+    {
+        // The password was correct, but 2FA is enabled.
+        // Redirect to the 2FA verification page.
+        return RedirectToAction("LoginWith2fa",
+            new { returnUrl, rememberMe = model.RememberMe });
+    }
+
+    // If none of the above, it's a generic failure (wrong password, etc.)
+    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
     return View(model);
 }
 
+// ─────────────────────────────────────────────
+// POST /Account/Logout — Sign out the user
+// ─────────────────────────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Logout()
+{
+    var userName = User.Identity?.Name;
+    await _signInManager.SignOutAsync();
+    _logger.LogInformation("User logged out: {UserName}", userName);
+    return RedirectToAction("Index", "Home");
+}
+
+// ─────────────────────────────────────────────
+// GET /Account/Lockout — Show lockout page
+// ─────────────────────────────────────────────
 [HttpGet]
 [AllowAnonymous]
-public IActionResult ResetPasswordConfirmation()
+public IActionResult Lockout()
+{
+    return View();
+}
+
+// ─────────────────────────────────────────────
+// GET /Account/AccessDenied — Show access denied page
+// ─────────────────────────────────────────────
+[HttpGet]
+[AllowAnonymous]
+public IActionResult AccessDenied()
 {
     return View();
 }
 ```
 
+### How `PasswordSignInAsync` Works Internally
+
+1. **Password verification** — retrieves `PasswordHash` from the store, runs the provided password through the same hashing algorithm (PBKDF2 with HMAC-SHA256) with the stored salt, compares the results. This is a constant-time comparison to prevent timing attacks.
+
+2. **Lockout check** — if `lockoutOnFailure` is true and the password is wrong, increments `AccessFailedCount`. If `AccessFailedCount >= MaxFailedAccessAttempts`, sets `LockoutEnd = DateTimeOffset.UtcNow + DefaultLockoutTimeSpan`.
+
+3. **Cookie creation** — if all checks pass, creates a `ClaimsPrincipal` from the user's claims (including role claims) and stores it in an authentication cookie. The cookie includes the user's `SecurityStamp` so it can be validated on subsequent requests.
+
+4. **Return value** — `SignInResult` with properties:
+   - `Succeeded` — login worked, cookie created
+   - `IsLockedOut` — account was already locked
+   - `IsNotAllowed` — account exists but can't sign in (email not confirmed, etc.)
+   - `RequiresTwoFactor` — password correct, 2FA needed
+
+### Why This Matters
+
+Login is the most security-critical flow in any application. This video breaks down exactly what happens at each step, why the error messages are generic (to prevent username enumeration), how lockout works, and what `PasswordSignInAsync` does under the hood. Viewers leave knowing not just how to call the method, but what it's doing for them.
+
 ---
 
-## 9. Role Management with IdentityRole
+## Video 09 — Role Management — Creating, Assigning, Removing Roles
 
-### Understanding Role-Based Security
+### What We're Building
 
-Role-based security is a fundamental access control model where permissions are assigned to roles, and users are assigned to roles. This abstraction simplifies permission management—rather than assigning specific permissions to each user, you assign users to roles that carry the appropriate permissions. When a new employee joins, you assign them the roles appropriate for their position; when they leave, you remove their role assignments.
+An admin controller for managing roles: list all roles, create roles, update role details, delete roles (with safety checks), add/remove claims from roles, and assign/remove roles from users.
 
-ASP.NET Core Identity provides built-in support for role management through the `IdentityRole` class and `RoleManager<TRole>`. Roles integrate seamlessly with the authorization system—the `[Authorize(Roles = "Admin")]` attribute restricts access to users in the specified roles. Behind the scenes, roles are represented as role claims in the authentication cookie, making role checks fast since they don't require database lookups during request processing.
-
-### Creating and Managing Roles
-
-The `RoleManager` class provides methods for creating, updating, and deleting roles. Here's a comprehensive `RoleManagementController`:
+### The Role Management Controller
 
 ```csharp
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using IdentityTutorial.Models;
+
+namespace IdentityTutorial.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin")] // Only admins can manage roles
 public class RoleManagementController : ControllerBase
 {
     private readonly RoleManager<ApplicationRole> _roleManager;
@@ -1366,29 +1413,31 @@ public class RoleManagementController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Get all roles
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // GET /api/rolemanagement — List all roles
+    // ─────────────────────────────────────────────
     [HttpGet]
     public IActionResult GetAllRoles()
     {
+        // RoleManager.Roles is a DbSet<ApplicationRole> — all roles in the system.
+        // We project to a DTO to avoid exposing internal properties.
         var roles = _roleManager.Roles
-            .Select(r => new RoleListViewModel
+            .Select(r => new
             {
-                Id = r.Id,
-                Name = r.Name!,
-                Description = r.Description,
-                IsSystemRole = r.IsSystemRole,
-                CreatedAt = r.CreatedAt
+                r.Id,
+                r.Name,
+                r.Description,
+                r.IsSystemRole,
+                r.CreatedAt
             })
             .ToList();
 
         return Ok(roles);
     }
 
-    /// <summary>
-    /// Get a specific role with its users
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // GET /api/rolemanagement/{id} — Get a specific role with its users and claims
+    // ─────────────────────────────────────────────
     [HttpGet("{id}")]
     public async Task<IActionResult> GetRole(string id)
     {
@@ -1398,37 +1447,44 @@ public class RoleManagementController : ControllerBase
             return NotFound(new { Message = "Role not found" });
         }
 
+        // Get all users assigned to this role
         var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name!);
+
+        // Get claims associated with this role
         var roleClaims = await _roleManager.GetClaimsAsync(role);
 
         return Ok(new
         {
-            Id = role.Id,
-            Name = role.Name,
-            Description = role.Description,
-            IsSystemRole = role.IsSystemRole,
-            CreatedAt = role.CreatedAt,
-            Users = usersInRole.Select(u => new { u.Id, u.UserName, u.Email }),
-            Claims = roleClaims.Select(c => new { c.Type, c.Value })
+            role.Id,
+            role.Name,
+            role.Description,
+            role.IsSystemRole,
+            role.CreatedAt,
+            Users = usersInRole.Select(u => new
+            {
+                u.Id,
+                u.UserName,
+                u.Email
+            }),
+            Claims = roleClaims.Select(c => new
+            {
+                c.Type,
+                c.Value
+            })
         });
     }
 
-    /// <summary>
-    /// Create a new role
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // POST /api/rolemanagement — Create a new role
+    // ─────────────────────────────────────────────
     [HttpPost]
-    public async Task<IActionResult> CreateRole([FromBody] CreateRoleViewModel model)
+    public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest model)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         // Check if role already exists
-        var existingRole = await _roleManager.FindByNameAsync(model.Name);
-        if (existingRole != null)
+        var existing = await _roleManager.FindByNameAsync(model.Name);
+        if (existing != null)
         {
-            return BadRequest(new { Message = "Role already exists" });
+            return BadRequest(new { Message = "A role with this name already exists." });
         }
 
         var role = new ApplicationRole
@@ -1447,19 +1503,15 @@ public class RoleManagementController : ControllerBase
 
         _logger.LogInformation("Role created: {RoleName}", model.Name);
 
-        return CreatedAtAction(nameof(GetRole), new { id = role.Id }, new
-        {
-            Id = role.Id,
-            Name = role.Name,
-            Description = role.Description
-        });
+        return CreatedAtAction(nameof(GetRole), new { id = role.Id },
+            new { Id = role.Id, Name = role.Name, Description = role.Description });
     }
 
-    /// <summary>
-    /// Update a role
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // PUT /api/rolemanagement/{id} — Update a role
+    // ─────────────────────────────────────────────
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateRole(string id, [FromBody] UpdateRoleViewModel model)
+    public async Task<IActionResult> UpdateRole(string id, [FromBody] UpdateRoleRequest model)
     {
         var role = await _roleManager.FindByIdAsync(id);
         if (role == null)
@@ -1467,13 +1519,13 @@ public class RoleManagementController : ControllerBase
             return NotFound(new { Message = "Role not found" });
         }
 
-        // Check if renaming to an existing name
+        // If renaming, check the new name isn't taken
         if (role.Name != model.Name)
         {
-            var existingRole = await _roleManager.FindByNameAsync(model.Name);
-            if (existingRole != null)
+            var existing = await _roleManager.FindByNameAsync(model.Name);
+            if (existing != null)
             {
-                return BadRequest(new { Message = "Role name already exists" });
+                return BadRequest(new { Message = "That role name is already in use." });
             }
         }
 
@@ -1486,12 +1538,12 @@ public class RoleManagementController : ControllerBase
             return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
         }
 
-        return Ok(new { Message = "Role updated successfully" });
+        return Ok(new { Message = "Role updated." });
     }
 
-    /// <summary>
-    /// Delete a role
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // DELETE /api/rolemanagement/{id} — Delete a role
+    // ─────────────────────────────────────────────
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRole(string id)
     {
@@ -1501,17 +1553,19 @@ public class RoleManagementController : ControllerBase
             return NotFound(new { Message = "Role not found" });
         }
 
+        // Safety: can't delete system roles
         if (role.IsSystemRole)
         {
-            return BadRequest(new { Message = "System roles cannot be deleted" });
+            return BadRequest(new { Message = "System roles cannot be deleted." });
         }
 
-        // Check if any users are in this role
+        // Safety: can't delete a role that has users
         var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name!);
         if (usersInRole.Any())
         {
-            return BadRequest(new { 
-                Message = "Cannot delete role with assigned users. Remove users from the role first.",
+            return BadRequest(new
+            {
+                Message = "Remove users from this role before deleting it.",
                 UserCount = usersInRole.Count
             });
         }
@@ -1523,15 +1577,14 @@ public class RoleManagementController : ControllerBase
         }
 
         _logger.LogInformation("Role deleted: {RoleName}", role.Name);
-
-        return Ok(new { Message = "Role deleted successfully" });
+        return Ok(new { Message = "Role deleted." });
     }
 
-    /// <summary>
-    /// Add a claim to a role
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // POST /api/rolemanagement/{id}/claims — Add a claim to a role
+    // ─────────────────────────────────────────────
     [HttpPost("{id}/claims")]
-    public async Task<IActionResult> AddClaimToRole(string id, [FromBody] AddClaimViewModel model)
+    public async Task<IActionResult> AddClaimToRole(string id, [FromBody] AddClaimRequest model)
     {
         var role = await _roleManager.FindByIdAsync(id);
         if (role == null)
@@ -1539,14 +1592,14 @@ public class RoleManagementController : ControllerBase
             return NotFound(new { Message = "Role not found" });
         }
 
-        // Check if claim already exists
+        // Check if the claim already exists on this role
         var existingClaims = await _roleManager.GetClaimsAsync(role);
         if (existingClaims.Any(c => c.Type == model.ClaimType && c.Value == model.ClaimValue))
         {
-            return BadRequest(new { Message = "Claim already exists for this role" });
+            return BadRequest(new { Message = "This claim already exists on the role." });
         }
 
-        var claim = new Claim(model.ClaimType, model.ClaimValue);
+        var claim = new System.Security.Claims.Claim(model.ClaimType, model.ClaimValue);
         var result = await _roleManager.AddClaimAsync(role, claim);
 
         if (!result.Succeeded)
@@ -1554,14 +1607,14 @@ public class RoleManagementController : ControllerBase
             return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
         }
 
-        return Ok(new { Message = "Claim added to role" });
+        return Ok(new { Message = "Claim added to role." });
     }
 
-    /// <summary>
-    /// Remove a claim from a role
-    /// </summary>
+    // ─────────────────────────────────────────────
+    // DELETE /api/rolemanagement/{id}/claims — Remove a claim from a role
+    // ─────────────────────────────────────────────
     [HttpDelete("{id}/claims")]
-    public async Task<IActionResult> RemoveClaimFromRole(string id, [FromBody] RemoveClaimViewModel model)
+    public async Task<IActionResult> RemoveClaimFromRole(string id, [FromBody] RemoveClaimRequest model)
     {
         var role = await _roleManager.FindByIdAsync(id);
         if (role == null)
@@ -1569,7 +1622,7 @@ public class RoleManagementController : ControllerBase
             return NotFound(new { Message = "Role not found" });
         }
 
-        var claim = new Claim(model.ClaimType, model.ClaimValue);
+        var claim = new System.Security.Claims.Claim(model.ClaimType, model.ClaimValue);
         var result = await _roleManager.RemoveClaimAsync(role, claim);
 
         if (!result.Succeeded)
@@ -1577,21 +1630,44 @@ public class RoleManagementController : ControllerBase
             return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
         }
 
-        return Ok(new { Message = "Claim removed from role" });
+        return Ok(new { Message = "Claim removed from role." });
     }
+}
+
+// ── Request DTOs ──
+public class CreateRoleRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+}
+
+public class UpdateRoleRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+}
+
+public class AddClaimRequest
+{
+    public string ClaimType { get; set; } = string.Empty;
+    public string ClaimValue { get; set; } = string.Empty;
+}
+
+public class RemoveClaimRequest
+{
+    public string ClaimType { get; set; } = string.Empty;
+    public string ClaimValue { get; set; } = string.Empty;
 }
 ```
 
 ### Assigning Users to Roles
 
-User-role assignments are managed through `UserManager`:
-
 ```csharp
-/// <summary>
-/// Assign a role to a user
-/// </summary>
+// Inside a UserManagementController (or the same controller)
+
+// POST /api/usermanagement/users/{userId}/roles — Assign a role to a user
 [HttpPost("users/{userId}/roles")]
-public async Task<IActionResult> AddUserToRole(string userId, [FromBody] AssignRoleViewModel model)
+public async Task<IActionResult> AddUserToRole(string userId, [FromBody] AssignRoleRequest model)
 {
     var user = await _userManager.FindByIdAsync(userId);
     if (user == null)
@@ -1605,9 +1681,10 @@ public async Task<IActionResult> AddUserToRole(string userId, [FromBody] AssignR
         return NotFound(new { Message = "Role not found" });
     }
 
+    // Check if already assigned
     if (await _userManager.IsInRoleAsync(user, role.Name!))
     {
-        return BadRequest(new { Message = "User already has this role" });
+        return BadRequest(new { Message = "User already has this role." });
     }
 
     var result = await _userManager.AddToRoleAsync(user, role.Name!);
@@ -1616,14 +1693,13 @@ public async Task<IActionResult> AddUserToRole(string userId, [FromBody] AssignR
         return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
     }
 
-    _logger.LogInformation("User {UserId} assigned to role {RoleName}", userId, role.Name);
+    _logger.LogInformation("User {UserId} assigned to role {RoleName}",
+        userId, role.Name);
 
-    return Ok(new { Message = "Role assigned to user" });
+    return Ok(new { Message = "Role assigned." });
 }
 
-/// <summary>
-/// Remove a role from a user
-/// </summary>
+// DELETE /api/usermanagement/users/{userId}/roles/{roleId} — Remove a role from a user
 [HttpDelete("users/{userId}/roles/{roleId}")]
 public async Task<IActionResult> RemoveUserFromRole(string userId, string roleId)
 {
@@ -1639,16 +1715,16 @@ public async Task<IActionResult> RemoveUserFromRole(string userId, string roleId
         return NotFound(new { Message = "Role not found" });
     }
 
-    if (!await _userManager.IsInRoleAsync(user, role.Name!))
-    {
-        return BadRequest(new { Message = "User doesn't have this role" });
-    }
-
-    // Prevent removing the last admin
+    // Safety: don't remove the last admin
     var admins = await _userManager.GetUsersInRoleAsync("Admin");
     if (role.Name == "Admin" && admins.Count == 1 && admins[0].Id == userId)
     {
-        return BadRequest(new { Message = "Cannot remove the last administrator" });
+        return BadRequest(new { Message = "Cannot remove the last administrator." });
+    }
+
+    if (!await _userManager.IsInRoleAsync(user, role.Name!))
+    {
+        return BadRequest(new { Message = "User does not have this role." });
     }
 
     var result = await _userManager.RemoveFromRoleAsync(user, role.Name!);
@@ -1657,14 +1733,13 @@ public async Task<IActionResult> RemoveUserFromRole(string userId, string roleId
         return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
     }
 
-    _logger.LogInformation("User {UserId} removed from role {RoleName}", userId, role.Name);
+    _logger.LogInformation("User {UserId} removed from role {RoleName}",
+        userId, role.Name);
 
-    return Ok(new { Message = "Role removed from user" });
+    return Ok(new { Message = "Role removed." });
 }
 
-/// <summary>
-/// Get all roles for a user
-/// </summary>
+// GET /api/usermanagement/users/{userId}/roles — Get all roles for a user
 [HttpGet("users/{userId}/roles")]
 public async Task<IActionResult> GetUserRoles(string userId)
 {
@@ -1679,32 +1754,36 @@ public async Task<IActionResult> GetUserRoles(string userId)
 }
 ```
 
+### Why This Matters
+
+Roles are the backbone of authorization in most applications. This video shows how to create them, assign them, remove them, and — critically — the safety checks that prevent deleting the last admin or deleting a role that's in use. Viewers also see how role claims work (claims on a role apply to all users in that role).
+
 ---
 
-## 10. Role-Based Access Control (RBAC)
+## Video 10 — Role-Based Access Control (RBAC) — Protecting Your Endpoints
 
-### Implementing RBAC with Identity
+### What We're Building
 
-Role-Based Access Control (RBAC) restricts system access based on the roles assigned to users. In ASP.NET Core Identity, RBAC is implemented through the combination of IdentityRole, role assignments, and the `[Authorize]` attribute with the Roles parameter. This creates a clear separation between authentication (verifying who the user is) and authorization (determining what the user can do).
+How to protect controllers and actions using `[Authorize(Roles = ...)]`, how multiple roles work, how AND vs OR semantics work, and how to check roles programmatically in code.
 
-The core principle of RBAC is that permissions are not assigned directly to users but are instead assigned to roles. Users inherit the permissions of all roles they're assigned to. This model provides several benefits: simplified permission management (adding a new employee requires only assigning the appropriate role), easier auditing (you can see what permissions each role has), and reduced risk of permission creep (permissions don't accumulate over time if managed through roles).
-
-### Using the Authorize Attribute with Roles
-
-The `[Authorize]` attribute supports role-based restrictions through the Roles parameter. When specified, only users in at least one of the listed roles can access the endpoint:
+### Using `[Authorize]` with Roles
 
 ```csharp
-// Only administrators can access
+// ── Only Admins can access this entire controller ──
 [Authorize(Roles = "Admin")]
 public class AdminController : Controller
 {
     public IActionResult Dashboard()
     {
+        // Only users in the "Admin" role reach here.
+        // If a non-admin tries, they get a 403 Forbidden (or redirected
+        // to the AccessDeniedPath configured in cookie options).
         return View();
     }
 }
 
-// Both Admin and Manager can access
+// ── Either Admin OR Manager can access ──
+// The comma means OR — being in ANY of the listed roles is sufficient.
 [Authorize(Roles = "Admin,Manager")]
 public class ReportsController : Controller
 {
@@ -1714,22 +1793,22 @@ public class ReportsController : Controller
     }
 }
 
-// Controller accessible to all authenticated users, but specific actions restricted
+// ── Mixed: some actions for everyone, some for specific roles ──
 public class ProductsController : Controller
 {
-    // Anyone can view products
-    [Authorize]
+    // Anyone logged in can view products
+    [Authorize] // Just requires authentication, no specific role
     public IActionResult Index()
     {
         return View();
     }
 
-    // Only Admin and Manager can create
+    // Only Admin or Manager can create products
     [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public IActionResult Create(Product model)
     {
-        // Create product
+        // Create the product
         return RedirectToAction(nameof(Index));
     }
 
@@ -1738,30 +1817,30 @@ public class ProductsController : Controller
     [HttpPost]
     public IActionResult Delete(int id)
     {
-        // Delete product
+        // Delete the product
         return RedirectToAction(nameof(Index));
     }
 }
 ```
 
-For scenarios requiring multiple roles (user must have ALL specified roles), use multiple `[Authorize]` attributes:
+### AND Semantics — User Must Have ALL Roles
 
 ```csharp
-// User must be BOTH Admin AND in Finance department
+// A user must be in BOTH "Admin" AND "Finance" roles.
+// Multiple [Authorize] attributes are ANDed together.
 [Authorize(Roles = "Admin")]
 [Authorize(Roles = "Finance")]
 public class FinancialAdminController : Controller
 {
     public IActionResult Index()
     {
+        // Only users who are BOTH Admin and Finance reach here.
         return View();
     }
 }
 ```
 
 ### Checking Roles Programmatically
-
-Sometimes you need to check roles in your code rather than through attributes:
 
 ```csharp
 public class DashboardController : Controller
@@ -1775,21 +1854,26 @@ public class DashboardController : Controller
 
     public async Task<IActionResult> Index()
     {
+        // Get the current user from the ClaimsPrincipal
         var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge(); // Not authenticated
+        }
 
-        // Check if user is in a specific role
-        var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+        // Check if the user is in a specific role
+        bool isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
 
-        // Get all user's roles
+        // Get all roles the user has
         var roles = await _userManager.GetRolesAsync(user);
 
-        // Using User principal (from cookie)
-        var isInRole = User.IsInRole("Admin");
+        // Alternatively, check the claims principal directly (cookie already has role claims)
+        bool isInRoleFast = User.IsInRole("Admin"); // No database call — cookie check
 
         var viewModel = new DashboardViewModel
         {
             UserName = user.UserName,
-            Roles = roles,
+            Roles = roles.ToList(),
             ShowAdminPanel = isAdmin
         };
 
@@ -1798,31 +1882,35 @@ public class DashboardController : Controller
 }
 ```
 
-### Creating a Permission System on Top of Roles
+### Building a Permission System on Top of Roles
 
-While Identity provides roles, many applications need a more granular permission system. A common pattern is to create a permission table and associate permissions with roles:
+Roles are coarse — "Admin" or "User." What if you need granular permissions like "Users.Create" or "Reports.Export"? Build a permission table and tie permissions to roles:
 
 ```csharp
 // Permission entity
 public class Permission
 {
     public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;  // e.g., "Users.Create"
     public string Description { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty; // e.g., "Users", "Reports"
 }
 
-// Role-Permission junction table
+// Role-Permission junction
 public class RolePermission
 {
     public string RoleId { get; set; } = string.Empty;
     public int PermissionId { get; set; }
-    
+
+    // Navigation properties
     public ApplicationRole Role { get; set; } = null!;
     public Permission Permission { get; set; } = null!;
 }
+```
 
-// Extend ApplicationRole
+Extend `ApplicationRole` to include the navigation:
+
+```csharp
 public class ApplicationRole : IdentityRole
 {
     public string? Description { get; set; }
@@ -1830,30 +1918,25 @@ public class ApplicationRole : IdentityRole
 }
 ```
 
-Create a permission service:
+Permission service:
 
 ```csharp
 public interface IPermissionService
 {
     Task<bool> HasPermissionAsync(string userId, string permissionName);
     Task<List<string>> GetUserPermissionsAsync(string userId);
-    Task GrantPermissionToRoleAsync(string roleId, int permissionId);
-    Task RevokePermissionFromRoleAsync(string roleId, int permissionId);
 }
 
 public class PermissionService : IPermissionService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly ApplicationDbContext _context;
 
     public PermissionService(
         UserManager<ApplicationUser> userManager,
-        RoleManager<ApplicationRole> roleManager,
         ApplicationDbContext context)
     {
         _userManager = userManager;
-        _roleManager = roleManager;
         _context = context;
     }
 
@@ -1862,13 +1945,13 @@ public class PermissionService : IPermissionService
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return false;
 
+        // Get the user's roles
         var roles = await _userManager.GetRolesAsync(user);
-        
-        var hasPermission = await _context.RolePermissions
-            .AnyAsync(rp => roles.Contains(rp.RoleId) && 
-                           rp.Permission.Name == permissionName);
 
-        return hasPermission;
+        // Check if any of the user's roles have the permission
+        return await _context.RolePermissions
+            .AnyAsync(rp => roles.Contains(rp.RoleId)
+                && rp.Permission.Name == permissionName);
     }
 
     public async Task<List<string>> GetUserPermissionsAsync(string userId)
@@ -1878,82 +1961,47 @@ public class PermissionService : IPermissionService
 
         var roles = await _userManager.GetRolesAsync(user);
 
-        var permissions = await _context.RolePermissions
+        // Collect all distinct permissions across all the user's roles
+        return await _context.RolePermissions
             .Where(rp => roles.Contains(rp.RoleId))
             .Select(rp => rp.Permission.Name)
             .Distinct()
             .ToListAsync();
-
-        return permissions;
-    }
-
-    public async Task GrantPermissionToRoleAsync(string roleId, int permissionId)
-    {
-        var exists = await _context.RolePermissions
-            .AnyAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
-
-        if (!exists)
-        {
-            _context.RolePermissions.Add(new RolePermission
-            {
-                RoleId = roleId,
-                PermissionId = permissionId
-            });
-            await _context.SaveChangesAsync();
-        }
-    }
-
-    public async Task RevokePermissionFromRoleAsync(string roleId, int permissionId)
-    {
-        var rolePermission = await _context.RolePermissions
-            .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
-
-        if (rolePermission != null)
-        {
-            _context.RolePermissions.Remove(rolePermission);
-            await _context.SaveChangesAsync();
-        }
     }
 }
 ```
 
-Create a custom authorization attribute:
+Register in `Program.cs`:
 
 ```csharp
-public class PermissionAttribute : AuthorizeAttribute
-{
-    public PermissionAttribute(string permission)
-    {
-        Policy = $"Permission_{permission}";
-    }
-}
+// Register the permission service
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
-// Register permission policies in Program.cs
+// Register permission policies — one policy per permission
 builder.Services.AddAuthorization(options =>
 {
-    // Get all permissions and create policies
-    var permissions = new[] { "Users.View", "Users.Create", "Users.Edit", "Users.Delete",
-                              "Products.View", "Products.Create", "Products.Edit", "Products.Delete",
-                              "Reports.View", "Reports.Export" };
-
-    foreach (var permission in permissions)
+    var allPermissions = new[]
     {
-        options.AddPolicy($"Permission_{permission}", policy =>
+        "Users.View", "Users.Create", "Users.Edit", "Users.Delete",
+        "Products.View", "Products.Create", "Products.Edit", "Products.Delete",
+        "Reports.View", "Reports.Export"
+    };
+
+    foreach (var permission in allPermissions)
+    {
+        options.AddPolicy(permission, policy =>
             policy.Requirements.Add(new PermissionRequirement(permission)));
     }
 });
 
-// Permission requirement and handler
+// Permission requirement
 public class PermissionRequirement : IAuthorizationRequirement
 {
     public string Permission { get; }
-
-    public PermissionRequirement(string permission)
-    {
-        Permission = permission;
-    }
+    public PermissionRequirement(string permission) => Permission = permission;
 }
 
+// Permission handler
 public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
 {
     private readonly IServiceProvider _serviceProvider;
@@ -1967,9 +2015,10 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId == null) return;
 
+        // Create a scope to resolve the scoped permission service
         using var scope = _serviceProvider.CreateScope();
         var permissionService = scope.ServiceProvider.GetRequiredService<IPermissionService>();
 
@@ -1980,164 +2029,175 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
     }
 }
 
-// Register the handler
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 ```
 
-Now you can use the permission attribute:
+Now you can use permission-based authorization:
 
 ```csharp
-[Permission("Users.View")]
-public IActionResult Index()
+[Authorize(Policy = "Users.Create")]
+public IActionResult CreateUser()
 {
     return View();
 }
 
-[Permission("Users.Create")]
-[HttpPost]
-public IActionResult Create(UserViewModel model)
+[Authorize(Policy = "Reports.Export")]
+public IActionResult ExportReport()
 {
-    // Create user
-    return RedirectToAction(nameof(Index));
+    return File(reportData, "application/pdf");
 }
 ```
 
+### Why This Matters
+
+RBAC is simple and effective for most apps, but real applications often need finer control. This video shows the progression: simple role checks → multiple roles → AND semantics → a full permission system. Viewers learn when to stop at simple roles and when to invest in a permission system.
+
 ---
 
-## 11. Claims-Based Authorization
+## Video 11 — Claims-Based Authorization — Going Beyond Roles
 
-### Understanding Claims
+### What We're Building
 
-Claims are key-value pairs that represent facts about a user. While roles are a simple string that represents a group, claims provide a more flexible and expressive way to describe user attributes. A claim might represent the user's email, their department, their clearance level, whether they're a premium subscriber, or any other piece of information that's relevant to authorization decisions.
+Understanding claims as key-value facts about a user, adding and removing claims, defining claim-based policies, and reading claims in controllers, views, and middleware.
 
-The distinction between roles and claims is important: roles are a categorization mechanism (the user IS an Admin), while claims are statements about the user (the user HAS a department claim with value "Finance"). In practice, ASP.NET Core treats roles as a special type of claim—when you add a user to a role, internally Identity adds a claim of type `ClaimTypes.Role` with the role name as the value. This means all the authorization mechanisms that work with claims also work with roles.
+### What Is a Claim?
 
-Claims become part of the authentication cookie, making them available during request processing without database queries. This is both an advantage (fast access) and a consideration (the cookie size grows with more claims, and claims become stale until the user signs in again). For frequently changing data, you might query the database rather than storing claims in the cookie.
+A claim is a statement about a user: "This user's email is alice@example.com," "This user is in the Finance department," "This user has a Premium subscription." Claims are key-value pairs, and they become part of the authentication cookie so they're available on every request without a database call.
 
-### Adding Claims to Users
+Roles are actually just a special type of claim — when you add a user to a role, Identity internally adds a claim of type `ClaimTypes.Role` with the role name as the value. This means everything that works with claims also works with roles.
 
-Claims can be added to individual users or to roles (all users in the role inherit the claims):
+### Adding and Removing Claims
 
 ```csharp
 public class UserClaimsController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public UserClaimsController(UserManager<ApplicationUser> userManager)
+    public UserClaimsController(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager)
     {
         _userManager = userManager;
+        _signInManager = signInManager;
     }
 
-    // Add a claim to a user
-    [HttpPost]
-    public async Task<IActionResult> AddClaim(string userId, string claimType, string claimValue)
+    // POST /api/userclaims/{userId} — Add a claim to a user
+    [HttpPost("{userId}")]
+    public async Task<IActionResult> AddClaim(string userId, [FromBody] AddClaimRequest model)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
-        var claim = new Claim(claimType, claimValue);
+        var claim = new System.Security.Claims.Claim(model.ClaimType, model.ClaimValue);
         var result = await _userManager.AddClaimAsync(user, claim);
 
         if (result.Succeeded)
         {
-            // Refresh the user's sign-in cookie to include the new claim
+            // IMPORTANT: Refresh the sign-in cookie so the new claim is included
             await _signInManager.RefreshSignInAsync(user);
-            return Ok();
+            return Ok(new { Message = "Claim added." });
         }
 
         return BadRequest(result.Errors);
     }
 
-    // Remove a claim from a user
-    [HttpPost]
-    public async Task<IActionResult> RemoveClaim(string userId, string claimType, string claimValue)
+    // DELETE /api/userclaims/{userId} — Remove a claim from a user
+    [HttpDelete("{userId}")]
+    public async Task<IActionResult> RemoveClaim(string userId, [FromBody] RemoveClaimRequest model)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
-        var claim = new Claim(claimType, claimValue);
+        var claim = new System.Security.Claims.Claim(model.ClaimType, model.ClaimValue);
         var result = await _userManager.RemoveClaimAsync(user, claim);
 
         if (result.Succeeded)
         {
             await _signInManager.RefreshSignInAsync(user);
-            return Ok();
+            return Ok(new { Message = "Claim removed." });
         }
 
         return BadRequest(result.Errors);
     }
 
-    // Get all claims for a user
-    [HttpGet]
+    // GET /api/userclaims/{userId} — List all claims for a user
+    [HttpGet("{userId}")]
     public async Task<IActionResult> GetClaims(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
         var claims = await _userManager.GetClaimsAsync(user);
         return Ok(claims.Select(c => new { c.Type, c.Value }));
     }
 }
-```
 
-### Using Claims in Authorization
-
-The `[Authorize]` attribute can require specific claims:
-
-```csharp
-// User must have a specific claim value
-[Authorize(Policy = "DepartmentFinance")]
-public class FinanceController : Controller
+public class AddClaimRequest
 {
-    public IActionResult Index()
-    {
-        return View();
-    }
+    public string ClaimType { get; set; } = string.Empty;
+    public string ClaimValue { get; set; } = string.Empty;
+}
+
+public class RemoveClaimRequest
+{
+    public string ClaimType { get; set; } = string.Empty;
+    public string ClaimValue { get; set; } = string.Empty;
 }
 ```
 
-Define claim-based policies in Program.cs:
+**Critical point about `RefreshSignInAsync`:** After adding or removing a claim, the existing cookie still has the old claims. Calling `RefreshSignInAsync` re-creates the cookie with the updated claims. Without it, the change won't take effect until the user signs out and back in.
+
+### Defining Claim-Based Policies
+
+In `Program.cs`:
 
 ```csharp
 builder.Services.AddAuthorization(options =>
 {
-    // Require specific claim value
-    options.AddPolicy("DepartmentFinance", policy =>
-        policy.RequireClaim("Department", "Finance"));
+    // Require a specific claim value
+    options.AddPolicy("DepartmentFinance",
+        policy => policy.RequireClaim("Department", "Finance"));
 
-    // Require claim with any value
-    options.AddPolicy("HasEmployeeId", policy =>
-        policy.RequireClaim("EmployeeId"));
+    // Require a claim to exist (any value)
+    options.AddPolicy("HasEmployeeId",
+        policy => policy.RequireClaim("EmployeeId"));
 
-    // Require claim with multiple possible values
-    options.AddPolicy("SeniorStaff", policy =>
-        policy.RequireClaim("Level", "Senior", "Lead", "Manager", "Director"));
+    // Require a claim with one of several possible values
+    options.AddPolicy("SeniorStaff",
+        policy => policy.RequireClaim("Level",
+            "Senior", "Lead", "Manager", "Director"));
 
-    // Complex policy using RequireAssertion
-    options.AddPolicy("CanAccessPremium", policy =>
-        policy.RequireAssertion(context =>
+    // Complex policy using RequireAssertion (inline lambda)
+    options.AddPolicy("CanAccessPremium",
+        policy => policy.RequireAssertion(context =>
         {
-            var isPremium = context.User.HasClaim(c => 
-                c.Type == "Subscription" && c.Value == "Premium");
-            var isEmployee = context.User.HasClaim(c => 
-                c.Type == "EmployeeType");
+            var isPremium = context.User.HasClaim(
+                c => c.Type == "Subscription" && c.Value == "Premium");
+            var isEmployee = context.User.HasClaim(
+                c => c.Type == "EmployeeType");
             return isPremium || isEmployee;
         }));
 });
 ```
 
-### Accessing Claims in Code
+Using the policies:
 
-Claims are available through the `User` property (a ClaimsPrincipal) in controllers and views:
+```csharp
+[Authorize(Policy = "DepartmentFinance")]
+public class FinanceController : Controller
+{
+    public IActionResult Index() => View();
+}
+
+[Authorize(Policy = "SeniorStaff")]
+public class SeniorController : Controller
+{
+    public IActionResult Index() => View();
+}
+```
+
+### Reading Claims in Code
 
 ```csharp
 public class ProfileController : Controller
@@ -2146,19 +2206,24 @@ public class ProfileController : Controller
     {
         // Get a specific claim
         var departmentClaim = User.FindFirst("Department");
-        var department = departmentClaim?.Value ?? "Unknown";
+        var department = departmentClaim?.Value ?? "Unassigned";
 
-        // Check if user has a claim
-        var hasPremiumAccess = User.HasClaim(c => 
-            c.Type == "Subscription" && c.Value == "Premium");
+        // Check if user has a claim with specific value
+        bool isPremium = User.HasClaim(
+            c => c.Type == "Subscription" && c.Value == "Premium");
 
-        // Get all claims
-        var allClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}");
+        // Get the user's ID from the NameIdentifier claim
+        var userId = User.FindFirst(
+            System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        // Get specific claim types using ClaimTypes constants
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-        var name = User.FindFirst(ClaimTypes.Name)?.Value;
-        var nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Get email from the Email claim
+        var email = User.FindFirst(
+            System.Security.Claims.ClaimTypes.Email)?.Value;
+
+        // List all claims (for debugging or display)
+        var allClaims = User.Claims
+            .Select(c => $"{c.Type}: {c.Value}")
+            .ToList();
 
         return View();
     }
@@ -2171,138 +2236,133 @@ In Razor views:
 @using System.Security.Claims
 
 @{
-    var department = User.FindFirst("Department")?.Value;
-    var isPremium = User.HasClaim("Subscription", "Premium");
+    var dept = User.FindFirst("Department")?.Value;
+    var isPremium = User.HasClaim(c =>
+        c.Type == "Subscription" && c.Value == "Premium");
 }
 
-<div class="profile">
-    <p>User: @User.Identity?.Name</p>
-    <p>Department: @department</p>
-    
+<div class="profile-card">
+    <p><strong>Name:</strong> @User.Identity?.Name</p>
+    <p><strong>Department:</strong> @dept</p>
+
     @if (isPremium)
     {
-        <span class="badge">Premium Member</span>
+        <span class="badge badge-premium">Premium Member</span>
     }
 </div>
 ```
 
-### Adding Claims During User Creation
-
-You might want to add claims automatically when a user registers:
+### Adding Claims During Registration
 
 ```csharp
-public async Task<IActionResult> Register(RegisterViewModel model)
+// In the Register action (Video 07), after creating the user:
+if (result.Succeeded)
 {
-    // ... create user code ...
-
-    if (result.Succeeded)
+    // Add default claims based on registration data
+    var defaultClaims = new List<System.Security.Claims.Claim>
     {
-        // Add default claims
-        var defaultClaims = new List<Claim>
-        {
-            new Claim("Department", model.Department ?? "General"),
-            new Claim("Subscription", "Free"),
-            new Claim("AccountCreated", DateTime.UtcNow.ToString("O"))
-        };
+        new("Department", model.Department ?? "General"),
+        new("Subscription", "Free"),
+        new("AccountCreated", DateTime.UtcNow.ToString("O"))
+    };
 
-        await _userManager.AddClaimsAsync(user, defaultClaims);
+    await _userManager.AddClaimsAsync(user, defaultClaims);
+    await _userManager.AddToRoleAsync(user, "User");
 
-        // Assign default role
-        await _userManager.AddToRoleAsync(user, "User");
-
-        // ... continue with sign-in or email confirmation ...
-    }
+    // ... rest of registration flow
 }
 ```
 
+### Why This Matters
+
+Claims are the flexible alternative to roles. Roles answer "what group is this user in?" Claims answer "what facts do we know about this user?" Most applications need both. This video shows how claims work, how they relate to roles, and how to use them for authorization.
+
 ---
 
-## 12. Policy-Based Authorization
+## Video 12 — Policy-Based Authorization — Custom Requirements & Handlers
 
-### Understanding Policy-Based Authorization
+### What We're Building
 
-Policy-based authorization provides a more flexible and expressive way to define authorization requirements. Instead of hardcoding role names or claim values in attributes, you define named policies with specific requirements. These requirements can be based on roles, claims, custom logic, or any combination. The policy name is then used in `[Authorize]` attributes, decoupling authorization logic from controller code.
+Moving beyond simple role and claim checks to custom authorization policies with requirements and handlers — including age verification, business hours checks, subscription tier checks, and resource-based authorization.
 
-A policy consists of one or more requirements, and each requirement has an associated handler that determines whether the current user meets the requirement. This architecture allows for complex authorization scenarios while keeping the code maintainable. Requirements are reusable across policies, and handlers can be unit tested independently.
+### What Is a Policy?
 
-### Creating Custom Requirements
+A policy is a named set of requirements. Instead of hardcoding `Roles = "Admin"` in every `[Authorize]` attribute, you define a policy like `"AdminOnly"` in `Program.cs` and reference it by name. The policy can have multiple requirements, each with its own handler that contains the logic to evaluate it.
 
-A requirement is a class that implements `IAuthorizationRequirement`—typically just a data container:
+### Custom Requirements
 
 ```csharp
-// Age requirement
+// A requirement is just a data container — it implements IAuthorizationRequirement
+// which is an empty marker interface.
+
+// Age requirement — user must be at least N years old
 public class MinimumAgeRequirement : IAuthorizationRequirement
 {
     public int MinimumAge { get; }
-
-    public MinimumAgeRequirement(int minimumAge)
-    {
-        MinimumAge = minimumAge;
-    }
+    public MinimumAgeRequirement(int minimumAge) => MinimumAge = minimumAge;
 }
 
-// Time-based requirement
+// Business hours requirement — access only during business hours
 public class BusinessHoursRequirement : IAuthorizationRequirement
 {
     public int StartHour { get; } = 9;
     public int EndHour { get; } = 17;
 }
 
-// Subscription requirement
+// Subscription tier requirement — user must have a specific subscription
 public class SubscriptionRequirement : IAuthorizationRequirement
 {
     public string[] RequiredTiers { get; }
-
     public SubscriptionRequirement(params string[] requiredTiers)
-    {
-        RequiredTiers = requiredTiers;
-    }
+        => RequiredTiers = requiredTiers;
 }
 ```
 
-### Creating Authorization Handlers
-
-Handlers contain the logic to evaluate requirements. A handler inherits from `AuthorizationHandler<TRequirement>`:
+### Authorization Handlers
 
 ```csharp
+// Handler for the age requirement
 public class MinimumAgeHandler : AuthorizationHandler<MinimumAgeRequirement>
 {
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         MinimumAgeRequirement requirement)
     {
-        var dateOfBirthClaim = context.User.FindFirst("DateOfBirth");
-
-        if (dateOfBirthClaim == null)
+        // Look for a DateOfBirth claim
+        var dobClaim = context.User.FindFirst("DateOfBirth");
+        if (dobClaim == null)
         {
+            // No DOB claim — can't verify age, so fail silently
+            // (IAuthorizationHandlerContext.Fail() would explicitly fail,
+            // but not calling Succeed means the requirement isn't met)
             return Task.CompletedTask;
         }
 
-        if (DateTime.TryParse(dateOfBirthClaim.Value, out var dateOfBirth))
+        if (DateTime.TryParse(dobClaim.Value, out var dob))
         {
-            var age = CalculateAge(dateOfBirth);
-
+            var age = CalculateAge(dob);
             if (age >= requirement.MinimumAge)
             {
-                context.Succeed(requirement);
+                context.Succeed(requirement); // Requirement met
             }
         }
 
         return Task.CompletedTask;
     }
 
-    private static int CalculateAge(DateTime dateOfBirth)
+    private static int CalculateAge(DateTime dob)
     {
         var today = DateTime.Today;
-        var age = today.Year - dateOfBirth.Year;
-        if (dateOfBirth.Date > today.AddYears(-age))
+        var age = today.Year - dob.Year;
+        if (dob.Date > today.AddYears(-age))
         {
-            age--;
+            age--; // Birthday hasn't occurred yet this year
         }
         return age;
     }
 }
 
+// Handler for business hours
 public class BusinessHoursHandler : AuthorizationHandler<BusinessHoursRequirement>
 {
     protected override Task HandleRequirementAsync(
@@ -2310,8 +2370,8 @@ public class BusinessHoursHandler : AuthorizationHandler<BusinessHoursRequiremen
         BusinessHoursRequirement requirement)
     {
         var currentHour = DateTime.Now.Hour;
-
-        if (currentHour >= requirement.StartHour && currentHour < requirement.EndHour)
+        if (currentHour >= requirement.StartHour
+            && currentHour < requirement.EndHour)
         {
             context.Succeed(requirement);
         }
@@ -2320,16 +2380,17 @@ public class BusinessHoursHandler : AuthorizationHandler<BusinessHoursRequiremen
     }
 }
 
+// Handler for subscription tier
 public class SubscriptionHandler : AuthorizationHandler<SubscriptionRequirement>
 {
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         SubscriptionRequirement requirement)
     {
-        var subscriptionClaim = context.User.FindFirst("Subscription");
-
-        if (subscriptionClaim != null && 
-            requirement.RequiredTiers.Contains(subscriptionClaim.Value, StringComparer.OrdinalIgnoreCase))
+        var tierClaim = context.User.FindFirst("Subscription");
+        if (tierClaim != null
+            && requirement.RequiredTiers.Contains(tierClaim.Value,
+                StringComparer.OrdinalIgnoreCase))
         {
             context.Succeed(requirement);
         }
@@ -2341,55 +2402,50 @@ public class SubscriptionHandler : AuthorizationHandler<SubscriptionRequirement>
 
 ### Registering Policies and Handlers
 
-In Program.cs, register your policies and handlers:
-
 ```csharp
 builder.Services.AddAuthorization(options =>
 {
-    // Role-based policies
-    options.AddPolicy("RequireAdminRole", policy =>
-        policy.RequireRole("Admin"));
+    // Simple role policy
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 
-    // Claim-based policies
-    options.AddPolicy("RequireEmailVerified", policy =>
-        policy.RequireClaim("EmailVerified", "true"));
+    // Simple claim policy
+    options.AddPolicy("EmailVerified",
+        policy => policy.RequireClaim("EmailVerified", "true"));
 
     // Custom requirement policies
-    options.AddPolicy("AtLeast18", policy =>
-        policy.Requirements.Add(new MinimumAgeRequirement(18)));
+    options.AddPolicy("AtLeast18",
+        policy => policy.Requirements.Add(new MinimumAgeRequirement(18)));
 
-    options.AddPolicy("AtLeast21", policy =>
-        policy.Requirements.Add(new MinimumAgeRequirement(21)));
+    options.AddPolicy("AtLeast21",
+        policy => policy.Requirements.Add(new MinimumAgeRequirement(21)));
 
-    options.AddPolicy("BusinessHoursOnly", policy =>
-        policy.Requirements.Add(new BusinessHoursRequirement()));
+    options.AddPolicy("BusinessHoursOnly",
+        policy => policy.Requirements.Add(new BusinessHoursRequirement()));
 
-    options.AddPolicy("PremiumContent", policy =>
-        policy.Requirements.Add(new SubscriptionRequirement("Premium", "Enterprise")));
+    options.AddPolicy("PremiumContent",
+        policy => policy.Requirements.Add(
+            new SubscriptionRequirement("Premium", "Enterprise")));
 
-    // Complex policy combining multiple requirements
-    options.AddPolicy("AdminOrManager", policy =>
-        policy.RequireRole("Admin", "Manager"));
-
+    // Multiple requirements — ALL must be satisfied
     options.AddPolicy("AdminDuringBusinessHours", policy =>
     {
         policy.RequireRole("Admin");
         policy.Requirements.Add(new BusinessHoursRequirement());
     });
 
-    // Policy using RequireAssertion for inline logic
+    // Inline assertion policy (lambda instead of a handler)
     options.AddPolicy("CanEditContent", policy =>
         policy.RequireAssertion(context =>
         {
             var isAdmin = context.User.IsInRole("Admin");
             var isEditor = context.User.IsInRole("Editor");
-            var hasPermission = context.User.HasClaim("Permission", "Content.Edit");
-
-            return isAdmin || isEditor || hasPermission;
+            var hasPerm = context.User.HasClaim(
+                "Permission", "Content.Edit");
+            return isAdmin || isEditor || hasPerm;
         }));
 });
 
-// Register handlers
+// Register the handlers
 builder.Services.AddSingleton<IAuthorizationHandler, MinimumAgeHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, BusinessHoursHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, SubscriptionHandler>();
@@ -2401,59 +2457,47 @@ builder.Services.AddSingleton<IAuthorizationHandler, SubscriptionHandler>();
 public class ContentController : Controller
 {
     [Authorize(Policy = "AtLeast18")]
-    public IActionResult AdultContent()
-    {
-        return View();
-    }
+    public IActionResult AdultContent() => View();
 
     [Authorize(Policy = "PremiumContent")]
-    public IActionResult PremiumVideos()
-    {
-        return View();
-    }
+    public IActionResult PremiumVideos() => View();
 
     [Authorize(Policy = "BusinessHoursOnly")]
-    public IActionResult AdminDashboard()
-    {
-        return View();
-    }
+    public IActionResult AdminDashboard() => View();
 
     [Authorize(Policy = "AdminDuringBusinessHours")]
-    public IActionResult SensitiveOperation()
-    {
-        return View();
-    }
+    public IActionResult SensitiveOperation() => View();
+
+    [Authorize(Policy = "CanEditContent")]
+    public IActionResult EditContent() => View();
 }
 ```
 
 ### Resource-Based Authorization
 
-Sometimes authorization depends on the specific resource being accessed. Use imperative authorization checks:
+Sometimes authorization depends on the specific resource being accessed — e.g., "can this user edit THIS document?" Use imperative authorization:
 
 ```csharp
 public class DocumentsController : Controller
 {
-    private readonly IAuthorizationService _authorizationService;
-    private readonly IDocumentService _documentService;
+    private readonly IAuthorizationService _authService;
+    private readonly IDocumentService _docService;
 
     public DocumentsController(
-        IAuthorizationService authorizationService,
-        IDocumentService documentService)
+        IAuthorizationService authService,
+        IDocumentService docService)
     {
-        _authorizationService = authorizationService;
-        _documentService = documentService;
+        _authService = authService;
+        _docService = docService;
     }
 
     public async Task<IActionResult> Edit(int id)
     {
-        var document = await _documentService.GetByIdAsync(id);
-        if (document == null)
-        {
-            return NotFound();
-        }
+        var document = await _docService.GetByIdAsync(id);
+        if (document == null) return NotFound();
 
-        // Resource-based authorization
-        var result = await _authorizationService.AuthorizeAsync(
+        // Authorize against the specific resource
+        var result = await _authService.AuthorizeAsync(
             User, document, "EditDocumentPolicy");
 
         if (!result.Succeeded)
@@ -2466,10 +2510,10 @@ public class DocumentsController : Controller
 }
 ```
 
-Create a handler for resource-based authorization:
+Resource-based handler:
 
 ```csharp
-public class DocumentAuthorizationHandler : 
+public class DocumentAuthorizationHandler :
     AuthorizationHandler<DocumentOperationRequirement, Document>
 {
     protected override Task HandleRequirementAsync(
@@ -2484,20 +2528,21 @@ public class DocumentAuthorizationHandler :
             return Task.CompletedTask;
         }
 
-        // Check if user owns the document
-        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Owner can do anything
+        var userId = context.User.FindFirst(
+            System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (resource.OwnerId == userId)
         {
             context.Succeed(requirement);
             return Task.CompletedTask;
         }
 
-        // Check if document is shared with user
+        // Shared users can read, and edit if they have canEdit
         if (resource.SharedWith.Any(s => s.UserId == userId))
         {
-            if (requirement.Name == DocumentOperations.Read.Name ||
-                (requirement.Name == DocumentOperations.Edit.Name && 
-                 resource.SharedWith.First(s => s.UserId == userId).CanEdit))
+            var share = resource.SharedWith.First(s => s.UserId == userId);
+            if (requirement.Operation == "Read"
+                || (requirement.Operation == "Edit" && share.CanEdit))
             {
                 context.Succeed(requirement);
             }
@@ -2509,101 +2554,134 @@ public class DocumentAuthorizationHandler :
 
 public class DocumentOperationRequirement : IAuthorizationRequirement
 {
-    public string Name { get; }
-
-    public DocumentOperationRequirement(string name)
-    {
-        Name = name;
-    }
+    public string Operation { get; }
+    public DocumentOperationRequirement(string operation)
+        => Operation = operation;
 }
 
-public static class DocumentOperations
+// Static factory for clean policy names
+public static class DocumentPolicies
 {
-    public static DocumentOperationRequirement Read => 
-        new DocumentOperationRequirement("Read");
-    public static DocumentOperationRequirement Edit => 
-        new DocumentOperationRequirement("Edit");
-    public static DocumentOperationRequirement Delete => 
-        new DocumentOperationRequirement("Delete");
+    public static DocumentOperationRequirement Read
+        => new("Read");
+    public static DocumentOperationRequirement Edit
+        => new("Edit");
+    public static DocumentOperationRequirement Delete
+        => new("Delete");
 }
 ```
 
+Register:
+
+```csharp
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ReadDocument",
+        policy => policy.Requirements.Add(DocumentPolicies.Read));
+    options.AddPolicy("EditDocument",
+        policy => policy.Requirements.Add(DocumentPolicies.Edit));
+});
+
+builder.Services.AddSingleton<IAuthorizationHandler, DocumentAuthorizationHandler>();
+```
+
+### Why This Matters
+
+Policies are the most powerful authorization mechanism in ASP.NET Core. They let you define complex rules once and apply them consistently across controllers, and they're testable because handlers are isolated classes. This video takes viewers from simple `[Authorize(Roles = ...)]` to full custom policies and resource-based authorization.
+
 ---
 
-## 13. Password Policies and Validation
+## Video 13 — Password Policies & Custom Validation
 
-### Built-in Password Validation
+### What We're Building
 
-Identity provides configurable password validation through `PasswordOptions`. The default settings provide reasonable security, but you can customize them based on your requirements:
+Configuring built-in password options, writing a custom `IPasswordValidator` that checks for common passwords, user information in passwords, sequential characters, and repeated characters, and building a password strength meter endpoint.
+
+### Built-in Password Options
 
 ```csharp
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Password settings
-    options.Password.RequireDigit = true;           // Require at least one digit (0-9)
-    options.Password.RequireLowercase = true;       // Require at least one lowercase letter
-    options.Password.RequireUppercase = true;       // Require at least one uppercase letter
-    options.Password.RequireNonAlphanumeric = true; // Require at least one special character
-    options.Password.RequiredLength = 8;            // Minimum password length
-    options.Password.RequiredUniqueChars = 1;       // Minimum number of distinct characters
+    options.Password.RequireDigit = true;           // 0-9 required
+    options.Password.RequireLowercase = true;       // a-z required
+    options.Password.RequireUppercase = true;       // A-Z required
+    options.Password.RequireNonAlphanumeric = true; // !@#$%^&* etc. required
+    options.Password.RequiredLength = 8;            // Minimum 8 characters
+    options.Password.RequiredUniqueChars = 1;       // At least 1 distinct character
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 ```
 
-### Creating Custom Password Validators
+These are checked automatically when `UserManager.CreateAsync` or `UserManager.AddPasswordAsync` is called. If the password fails any check, the result's `Errors` collection contains a descriptive error.
 
-For more complex password requirements, implement `IPasswordValidator<TUser>`:
+### Custom Password Validator
 
 ```csharp
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
+
 public class CustomPasswordValidator : IPasswordValidator<ApplicationUser>
 {
     public Task<IdentityResult> ValidateAsync(
-        UserManager<ApplicationUser> manager, 
-        ApplicationUser user, 
+        UserManager<ApplicationUser> manager,
+        ApplicationUser user,
         string? password)
     {
         var errors = new List<IdentityError>();
 
+        // ── 1. Null/empty check ──
         if (string.IsNullOrEmpty(password))
         {
             return Task.FromResult(IdentityResult.Failed(
-                new IdentityError { Code = "PasswordEmpty", Description = "Password is required" }));
+                new IdentityError
+                {
+                    Code = "PasswordEmpty",
+                    Description = "Password is required."
+                }));
         }
 
-        // Check minimum length
+        // ── 2. Minimum length (stricter than default) ──
         if (password.Length < 10)
         {
             errors.Add(new IdentityError
             {
                 Code = "PasswordTooShort",
-                Description = "Password must be at least 10 characters long"
+                Description = "Password must be at least 10 characters long."
             });
         }
 
-        // Check for common passwords
-        var commonPasswords = new[] { "password", "123456", "qwerty", "letmein", "admin" };
-        if (commonPasswords.Any(p => password.ToLower().Contains(p)))
+        // ── 3. Common password check ──
+        // In production, use a lists of known breached passwords (e.g., haveibeenpwned API)
+        var commonPasswords = new[]
+        {
+            "password", "123456", "qwerty", "letmein", "admin",
+            "welcome", "monkey", "dragon", "master", "login"
+        };
+
+        if (commonPasswords.Any(p =>
+            password.ToLower().Contains(p)))
         {
             errors.Add(new IdentityError
             {
                 Code = "PasswordTooCommon",
-                Description = "Password contains a common word or sequence"
+                Description = "Password contains a common word or sequence."
             });
         }
 
-        // Check for user information in password
-        if (!string.IsNullOrEmpty(user.UserName) && 
-            password.ToLower().Contains(user.UserName.ToLower()))
+        // ── 4. User information in password ──
+        // Users often use their username or email in their password.
+        // Check and reject.
+        if (!string.IsNullOrEmpty(user.UserName)
+            && password.ToLower().Contains(user.UserName.ToLower()))
         {
             errors.Add(new IdentityError
             {
                 Code = "PasswordContainsUsername",
-                Description = "Password cannot contain your username"
+                Description = "Password cannot contain your username."
             });
         }
 
-        // Check for email in password
         if (!string.IsNullOrEmpty(user.Email))
         {
             var emailPrefix = user.Email.Split('@')[0];
@@ -2612,37 +2690,39 @@ public class CustomPasswordValidator : IPasswordValidator<ApplicationUser>
                 errors.Add(new IdentityError
                 {
                     Code = "PasswordContainsEmail",
-                    Description = "Password cannot contain your email"
+                    Description = "Password cannot contain your email address."
                 });
             }
         }
 
-        // Check for sequential characters
+        // ── 5. Sequential characters (abc, 123, cba, 321) ──
         if (HasSequentialChars(password, 3))
         {
             errors.Add(new IdentityError
             {
                 Code = "PasswordHasSequence",
-                Description = "Password cannot contain sequential characters like 'abc' or '123'"
+                Description = "Password cannot contain sequential characters like 'abc' or '123'."
             });
         }
 
-        // Check for repeated characters
+        // ── 6. Repeated characters (aaa, 111) ──
         if (HasRepeatedChars(password, 3))
         {
             errors.Add(new IdentityError
             {
                 Code = "PasswordHasRepetition",
-                Description = "Password cannot contain repeated characters like 'aaa' or '111'"
+                Description = "Password cannot contain repeated characters like 'aaa'."
             });
         }
 
+        // ── Return result ──
         return Task.FromResult(
-            errors.Count == 0 
-                ? IdentityResult.Success 
+            errors.Count == 0
+                ? IdentityResult.Success
                 : IdentityResult.Failed(errors.ToArray()));
     }
 
+    // Check for 3+ sequential characters (ascending or descending)
     private static bool HasSequentialChars(string password, int minLength)
     {
         for (int i = 0; i <= password.Length - minLength; i++)
@@ -2664,6 +2744,7 @@ public class CustomPasswordValidator : IPasswordValidator<ApplicationUser>
         return false;
     }
 
+    // Check for 3+ repeated characters
     private static bool HasRepeatedChars(string password, int minLength)
     {
         for (int i = 0; i <= password.Length - minLength; i++)
@@ -2684,7 +2765,7 @@ public class CustomPasswordValidator : IPasswordValidator<ApplicationUser>
 }
 ```
 
-Register the custom validator:
+### Registering the Custom Validator
 
 ```csharp
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -2693,70 +2774,99 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders()
-.AddPasswordValidator<CustomPasswordValidator>();
+.AddPasswordValidator<CustomPasswordValidator>(); // ← Add this line
 ```
 
-### Password Strength Meter
+Multiple validators can be registered — they all run and aggregate errors. This means you can have one validator for length/complexity rules and another for common password checking, keeping concerns separated.
 
-For a better user experience, provide real-time password strength feedback on the frontend. Create an API endpoint:
+### Password Strength Meter Endpoint
 
 ```csharp
-[HttpPost("check-password-strength")]
+[HttpPost("api/account/check-password-strength")]
 [AllowAnonymous]
 public IActionResult CheckPasswordStrength([FromBody] PasswordStrengthRequest request)
 {
-    var score = 0;
+    if (string.IsNullOrEmpty(request.Password))
+    {
+        return Ok(new { Score = 0, Strength = "None", Feedback = new[] { "Enter a password." } });
+    }
+
+    int score = 0;
     var feedback = new List<string>();
 
+    // Length scoring
     if (request.Password.Length >= 8) score += 1;
     if (request.Password.Length >= 12) score += 1;
+    if (request.Password.Length >= 16) score += 1;
+
+    // Character variety
     if (request.Password.Any(char.IsLower)) score += 1;
     if (request.Password.Any(char.IsUpper)) score += 1;
     if (request.Password.Any(char.IsDigit)) score += 1;
-    if (request.Password.Any(c => "!@#$%^&*()_+-=[]{}|;:,.<>?".Contains(c))) score += 2;
+    if (request.Password.Any(c => "!@#$%^&*()_+-=[]{}|;:,.<>?".Contains(c)))
+        score += 2; // Special characters worth more
 
     // Deductions
     if (HasSequentialChars(request.Password, 3))
     {
         score -= 1;
-        feedback.Add("Avoid sequential characters");
+        feedback.Add("Avoid sequential characters (abc, 123).");
     }
 
     if (HasRepeatedChars(request.Password, 3))
     {
         score -= 1;
-        feedback.Add("Avoid repeated characters");
+        feedback.Add("Avoid repeated characters (aaa, 111).");
+    }
+
+    // Check against common passwords (simplified list)
+    var common = new[] { "password", "123456", "qwerty" };
+    if (common.Any(p => request.Password.ToLower().Contains(p)))
+    {
+        score -= 2;
+        feedback.Add("Avoid common passwords.");
     }
 
     var strength = score switch
     {
-        <= 2 => "Weak",
-        <= 4 => "Fair",
-        <= 6 => "Good",
+        <= 1 => "Very Weak",
+        <= 3 => "Weak",
+        <= 5 => "Fair",
+        <= 7 => "Good",
         _ => "Strong"
     };
 
     return Ok(new
     {
         Score = Math.Max(0, score),
-        Strength = strength,
+        Strength,
         Feedback = feedback
     });
 }
+
+public class PasswordStrengthRequest
+{
+    public string Password { get; set; } = string.Empty;
+}
 ```
+
+### Why This Matters
+
+Password validation is one of the most visible security features to users. The built-in options cover the basics, but custom validators let you enforce organizational policies, check against breached password lists, and reject passwords containing user information. The strength meter improves UX by giving real-time feedback instead of a cryptic error after submission.
 
 ---
 
-## 14. Account Lockout and Security Features
+## Video 14 — Account Lockout & Security Stamp
 
-### Configuring Account Lockout
+### What We're Building
 
-Account lockout protects against brute force password attacks by temporarily disabling accounts after multiple failed login attempts:
+How account lockout works, configuring it, manually locking/unlocking users, the security stamp mechanism, and how to invalidate all sessions when security-critical changes happen.
+
+### Configuring Lockout
 
 ```csharp
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Lockout settings
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
@@ -2765,48 +2875,24 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 ```
 
-The lockout settings control how Identity responds to failed login attempts:
+| Setting | Purpose |
+|---------|---------|
+| `DefaultLockoutTimeSpan` | How long the account stays locked after exceeding the failed attempt threshold |
+| `MaxFailedAccessAttempts` | Number of failed attempts before lockout triggers |
+| `AllowedForNewUsers` | Whether newly created accounts are subject to lockout |
 
-- **DefaultLockoutTimeSpan**: How long the account remains locked after exceeding the failed attempt threshold. Common values are 5-30 minutes, balancing security against the risk of denial-of-service attacks.
+### How Lockout Works During Login
 
-- **MaxFailedAccessAttempts**: The number of failed attempts before lockout. Five attempts is a common default—low enough to prevent brute force attacks but high enough that legitimate users won't accidentally lock themselves out.
+The `PasswordSignInAsync` call with `lockoutOnFailure: true` handles lockout automatically:
 
-- **AllowedForNewUsers**: Whether lockout is enabled for newly created accounts. This should typically be true to protect all accounts from the moment they're created.
+1. Password is wrong → `AccessFailedCount` increments by 1
+2. If `AccessFailedCount >= MaxFailedAccessAttempts` → `LockoutEnd` is set to `DateTimeOffset.UtcNow + DefaultLockoutTimeSpan`
+3. On next login attempt, `IsLockedOutAsync` returns true, and login is rejected
+4. Lockout automatically expires when `LockoutEnd <= DateTimeOffset.UtcNow`
 
-### Implementing Lockout in Login
+The `AccessFailedCount` is automatically reset to 0 on a successful login.
 
-The `PasswordSignInAsync` method handles lockout automatically when `lockoutOnFailure` is true:
-
-```csharp
-public async Task<IActionResult> Login(LoginViewModel model)
-{
-    // ... validation ...
-
-    var result = await _signInManager.PasswordSignInAsync(
-        model.Email,
-        model.Password,
-        model.RememberMe,
-        lockoutOnFailure: true); // Enable lockout
-
-    if (result.IsLockedOut)
-    {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
-        var remainingTime = lockoutEnd - DateTimeOffset.UtcNow;
-
-        ModelState.AddModelError(string.Empty,
-            $"Account locked. Try again in {remainingTime?.Minutes ?? 0} minutes.");
-
-        return View(model);
-    }
-
-    // ... handle other results ...
-}
-```
-
-### Managing Lockout Programmatically
-
-Admin operations for managing lockout:
+### Manual Lockout Management (Admin Operations)
 
 ```csharp
 public class LockoutService
@@ -2818,42 +2904,42 @@ public class LockoutService
         _userManager = userManager;
     }
 
-    // Check if user is locked out
+    // Check if a user is locked out
     public async Task<bool> IsLockedOutAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        return await _userManager.IsLockedOutAsync(user);
+        return user != null && await _userManager.IsLockedOutAsync(user);
     }
 
     // Get remaining lockout time
     public async Task<TimeSpan?> GetRemainingLockoutTimeAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+        if (user == null) return null;
 
+        var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
         if (lockoutEnd == null || lockoutEnd <= DateTimeOffset.UtcNow)
-        {
             return null;
-        }
 
         return lockoutEnd - DateTimeOffset.UtcNow;
     }
 
-    // Manually lock a user account
-    public async Task<IdentityResult> LockUserAsync(string userId, TimeSpan? duration = null)
+    // Manually lock a user account (admin action)
+    public async Task<IdentityResult> LockUserAsync(
+        string userId, TimeSpan? duration = null)
     {
         var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return IdentityResult.Failed(
+            new IdentityError { Description = "User not found." });
 
-        // Enable lockout if not already enabled
+        // Enable lockout if not already
         if (!user.LockoutEnabled)
-        {
             await _userManager.SetLockoutEnabledAsync(user, true);
-        }
 
-        // Reset failed attempts count
+        // Reset failed attempts first
         await _userManager.ResetAccessFailedCountAsync(user);
 
-        // Set lockout end time
+        // Set lockout end
         var lockoutEnd = duration.HasValue
             ? DateTimeOffset.UtcNow.Add(duration.Value)
             : DateTimeOffset.MaxValue; // Permanent lock
@@ -2861,88 +2947,110 @@ public class LockoutService
         return await _userManager.SetLockoutEndDateAsync(user, lockoutEnd);
     }
 
-    // Unlock a user account
+    // Unlock a user account (admin action)
     public async Task<IdentityResult> UnlockUserAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return IdentityResult.Failed(
+            new IdentityError { Description = "User not found." });
 
-        // Clear lockout
         var result = await _userManager.SetLockoutEndDateAsync(user, null);
-
         if (result.Succeeded)
         {
-            // Reset failed attempts
+            // Also reset the failed count so they don't immediately lock again
             await _userManager.ResetAccessFailedCountAsync(user);
         }
 
         return result;
     }
 
-    // Get failed attempt count
+    // Get current failed attempt count
     public async Task<int> GetFailedAttemptCountAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        return await _userManager.GetAccessFailedCountAsync(user);
-    }
-
-    // Reset failed attempts
-    public async Task<IdentityResult> ResetFailedAttemptsAsync(string userId)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        return await _userManager.ResetAccessFailedCountAsync(user);
+        return user != null
+            ? await _userManager.GetAccessFailedCountAsync(user)
+            : 0;
     }
 }
 ```
 
-### Security Stamp
+### The Security Stamp — Why It Matters
 
-The security stamp is a crucial security feature that enables immediate sign-out when important user properties change:
+The `SecurityStamp` is a random GUID stored on the user. It changes whenever a security-critical event occurs:
+
+- Password change
+- Role assignment/removal
+- 2FA enable/disable
+- Email/phone change
+
+When the stamp changes, all existing authentication cookies become invalid because the cookie's stamp no longer matches the database's stamp. This is the mechanism behind "sign out everywhere" — you update the stamp, and every device's cookie fails validation on the next request.
+
+**How to use it:**
 
 ```csharp
-// When password is changed
+// When the password is changed
 await _userManager.UpdateSecurityStampAsync(user);
 
 // When roles are changed
 await _userManager.UpdateSecurityStampAsync(user);
 
-// When two-factor is enabled/disabled
+// When 2FA is toggled
 await _userManager.UpdateSecurityStampAsync(user);
 ```
 
-Configure security stamp validation in the cookie options:
+**Configure stamp validation:**
 
 ```csharp
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
-    // How often to re-validate the security stamp
+    // How often to re-validate the stamp (default is 30 seconds)
     options.ValidationInterval = TimeSpan.FromMinutes(30);
-    
-    // Path to redirect to when stamp validation fails
-    options.OnRefreshingPrincipal = (context) =>
+
+    // Called when the principal is being refreshed
+    options.OnRefreshingPrincipal = context =>
     {
-        // Custom logic when principal is refreshed
+        // You can log or take custom action when a stamp refresh happens
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILogger<Program>>();
+        var userId = context.NewPrincipal?.FindFirst(
+            System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        logger.LogInformation("Security stamp refreshed for user: {UserId}",
+            userId ?? "unknown");
         return Task.CompletedTask;
     };
 });
 ```
 
-When `UpdateSecurityStampAsync` is called, all existing authentication cookies become invalid because the stamp in the cookie no longer matches the stamp in the database. This provides a mechanism for immediate sign-out across all devices when security-critical changes occur.
+### Why This Matters
+
+Lockout is your first line of defense against brute force attacks. The security stamp is your mechanism for "sign out everywhere" — critical when a user's password is compromised or an admin removes a user's roles. Understanding both means you can secure accounts proactively rather than reactively.
 
 ---
 
-## 15. Two-Factor Authentication (2FA)
+## Video 15 — Two-Factor Authentication (2FA)
 
-### Understanding Two-Factor Authentication
+### What We're Building
 
-Two-factor authentication adds an additional layer of security by requiring users to provide a second form of verification beyond their password. ASP.NET Core Identity supports multiple 2FA methods: authenticator apps (TOTP), SMS, and email codes. The TOTP (Time-based One-Time Password) method using authenticator apps like Google Authenticator or Microsoft Authenticator is the most secure and commonly used approach.
+Enabling TOTP-based 2FA with authenticator apps (Google Authenticator, Microsoft Authenticator), handling 2FA during login, generating and using recovery codes, and disabling 2FA.
 
-When 2FA is enabled for a user, the login flow changes. After successfully entering their password, the user is redirected to a 2FA verification page where they must enter a code from their authenticator app or receive a code via SMS/email. Only after providing the correct code is the sign-in completed. This dramatically improves security—even if an attacker obtains a user's password, they cannot access the account without also having access to the second factor.
+### What Is TOTP?
 
-### Setting Up 2FA
+Time-based One-Time Password (TOTP) generates a 6-digit code that changes every 30 seconds. The server and the authenticator app share a secret key. Both independently compute the same code at the same time. When the user enters the code, the server verifies it matches.
 
-Add the Authenticator UI to your project:
+This is more secure than SMS-based 2FA because:
+- No phone number interception risk
+- Works offline (no cellular signal needed)
+- Not vulnerable to SIM-swapping attacks
+
+### Enabling 2FA — The Controller
 
 ```csharp
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using System.Text;
+using System.Web;
+
 public class TwoFactorController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -2959,120 +3067,129 @@ public class TwoFactorController : Controller
         _logger = logger;
     }
 
+    // ─────────────────────────────────────────────
+    // GET /TwoFactor/Enable — Show the QR code and key
+    // ─────────────────────────────────────────────
     [HttpGet]
     [Authorize]
     public async Task<IActionResult> EnableAuthenticator()
     {
         var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
-        // Load the authenticator key & generate QR code
-        var authenticatorKey = await _userManager.GetAuthenticatorKeyAsync(user);
-        if (string.IsNullOrEmpty(authenticatorKey))
+        // Get or generate the authenticator key
+        var key = await _userManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrEmpty(key))
         {
+            // Generate a new key if one doesn't exist
             await _userManager.ResetAuthenticatorKeyAsync(user);
-            authenticatorKey = await _userManager.GetAuthenticatorKeyAsync(user);
+            key = await _userManager.GetAuthenticatorKeyAsync(user);
         }
 
-        var model = new EnableAuthenticatorViewModel
-        {
-            SharedKey = FormatKey(authenticatorKey),
-            AuthenticatorUri = GenerateQrCodeUri(user.Email, authenticatorKey)
-        };
+        // Format the key into groups of 4 characters for readability
+        var formattedKey = FormatKey(key);
 
-        return View(model);
+        // Build the OTPAuth URL for QR code generation
+        // Format: otpauth://totp/{issuer}:{account}?secret={key}&issuer={issuer}&digits=6&period=30
+        var qrUri = GenerateQrCodeUri(user.Email!, key);
+
+        return View(new EnableAuthenticatorViewModel
+        {
+            SharedKey = formattedKey,
+            AuthenticatorUri = qrUri
+        });
     }
 
+    // ─────────────────────────────────────────────
+    // POST /TwoFactor/Enable — Verify the code and enable 2FA
+    // ─────────────────────────────────────────────
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EnableAuthenticator(EnableAuthenticatorViewModel model)
+    public async Task<IActionResult> EnableAuthenticator(
+        EnableAuthenticatorViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
+        if (!ModelState.IsValid) return View(model);
 
         var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
-        // Strip spaces and hyphens from the verification code
-        var verificationCode = model.Code.Replace(" ", string.Empty)
-                                         .Replace("-", string.Empty);
+        // Clean the verification code — remove spaces and hyphens
+        var code = model.Code.Replace(" ", string.Empty)
+                              .Replace("-", string.Empty);
 
-        var is2faTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
+        // Verify the code against the authenticator key
+        var isValid = await _userManager.VerifyTwoFactorTokenAsync(
             user,
             _userManager.Options.Tokens.AuthenticatorTokenProvider,
-            verificationCode);
+            code);
 
-        if (!is2faTokenValid)
+        if (!isValid)
         {
-            ModelState.AddModelError("Code", "Verification code is invalid.");
+            ModelState.AddModelError("Code",
+                "The verification code is invalid. Please try again.");
             return View(model);
         }
 
-        // Enable 2FA
+        // Enable 2FA for this user
         await _userManager.SetTwoFactorEnabledAsync(user, true);
 
-        // Generate recovery codes
-        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+        // Generate recovery codes (used when the authenticator app is unavailable)
+        var recoveryCodes = await _userManager
+            .GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
 
-        _logger.LogInformation("User enabled 2FA for account: {UserId}", user.Id);
+        _logger.LogInformation(
+            "User enabled 2FA: {UserId}", user.Id);
 
-        return RedirectToAction("ShowRecoveryCodes", new { recoveryCodes = string.Join(",", recoveryCodes) });
+        // Show the recovery codes to the user (they must save them)
+        return RedirectToAction("ShowRecoveryCodes",
+            new { recoveryCodes = string.Join(",", recoveryCodes) });
     }
 
+    // ─────────────────────────────────────────────
+    // GET /TwoFactor/ShowRecoveryCodes — Display recovery codes
+    // ─────────────────────────────────────────────
     [HttpGet]
     [Authorize]
     public IActionResult ShowRecoveryCodes(string recoveryCodes)
     {
         if (string.IsNullOrEmpty(recoveryCodes))
-        {
             return RedirectToAction("Index", "Home");
-        }
 
-        var model = new ShowRecoveryCodesViewModel
+        return View(new ShowRecoveryCodesViewModel
         {
-            RecoveryCodes = recoveryCodes.Split(',').ToArray()
-        };
-
-        return View(model);
+            RecoveryCodes = recoveryCodes.Split(',')
+        });
     }
 
+    // ─────────────────────────────────────────────
+    // GET /TwoFactor/Disable — Show confirmation to disable 2FA
+    // ─────────────────────────────────────────────
     [HttpGet]
     [Authorize]
     public async Task<IActionResult> Disable2fa()
     {
         var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
         if (!await _userManager.GetTwoFactorEnabledAsync(user))
         {
-            return BadRequest("Cannot disable 2FA as it's not currently enabled.");
+            return BadRequest("2FA is not currently enabled.");
         }
 
         return View();
     }
 
+    // ─────────────────────────────────────────────
+    // POST /TwoFactor/Disable — Disable 2FA
+    // ─────────────────────────────────────────────
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Disable2faConfirmed()
     {
         var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-        {
-            return NotFound();
-        }
+        if (user == null) return NotFound();
 
         var result = await _userManager.SetTwoFactorEnabledAsync(user, false);
         if (!result.Succeeded)
@@ -3080,197 +3197,228 @@ public class TwoFactorController : Controller
             return BadRequest("Failed to disable 2FA.");
         }
 
-        _logger.LogInformation("User disabled 2FA for account: {UserId}", user.Id);
+        _logger.LogInformation(
+            "User disabled 2FA: {UserId}", user.Id);
 
         return RedirectToAction("Index", "Manage");
     }
 
+    // ── Helper: Format key into groups of 4 ──
     private static string FormatKey(string unformattedKey)
     {
         var result = new StringBuilder();
-        int currentPosition = 0;
-        while (currentPosition + 4 < unformattedKey.Length)
+        int pos = 0;
+        while (pos + 4 < unformattedKey.Length)
         {
-            result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
-            currentPosition += 4;
+            result.Append(unformattedKey.AsSpan(pos, 4)).Append(' ');
+            pos += 4;
         }
-        if (currentPosition < unformattedKey.Length)
+        if (pos < unformattedKey.Length)
         {
-            result.Append(unformattedKey.AsSpan(currentPosition));
+            result.Append(unformattedKey.AsSpan(pos));
         }
-
         return result.ToString().ToLowerInvariant();
     }
 
+    // ── Helper: Build the OTPAuth URI ──
     private string GenerateQrCodeUri(string email, string secretKey)
     {
-        var issuer = UrlEncoder.Encode("YourAppName");
-        var userEmail = UrlEncoder.Encode(email);
-        return $"otpauth://totp/{issuer}:{userEmail}?secret={secretKey}&issuer={issuer}&digits=6";
+        var issuer = HttpUtility.UrlEncode("IdentityTutorial");
+        var account = HttpUtility.UrlEncode(email);
+        return $"otpauth://totp/{issuer}:{account}?secret={secretKey}&issuer={issuer}&digits=6&period=30";
     }
+}
+
+public class EnableAuthenticatorViewModel
+{
+    public string SharedKey { get; set; } = string.Empty;
+    public string AuthenticatorUri { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+}
+
+public class ShowRecoveryCodesViewModel
+{
+    public string[] RecoveryCodes { get; set; } = Array.Empty<string>();
 }
 ```
 
 ### Handling 2FA During Login
 
-Modify the login process to handle 2FA:
-
 ```csharp
-[HttpPost]
-[AllowAnonymous]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+// In AccountController.Login (Video 08), after PasswordSignInAsync:
+var result = await _signInManager.PasswordSignInAsync(
+    model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
+
+if (result.RequiresTwoFactor)
 {
-    // ... existing validation ...
-
-    var result = await _signInManager.PasswordSignInAsync(
-        model.Email,
-        model.Password,
-        model.RememberMe,
-        lockoutOnFailure: true);
-
-    if (result.RequiresTwoFactor)
-    {
-        // Redirect to 2FA verification
-        return RedirectToAction("LoginWith2fa", new { returnUrl, model.RememberMe });
-    }
-
-    // ... handle other results ...
+    return RedirectToAction("LoginWith2fa",
+        new { returnUrl, rememberMe = model.RememberMe });
 }
 
+// ... handle other results ...
+
+// ─────────────────────────────────────────────
+// GET /Account/LoginWith2fa — Show 2FA verification form
+// ─────────────────────────────────────────────
 [HttpGet]
 [AllowAnonymous]
-public async Task<IActionResult> LoginWith2fa(bool rememberMe, string? returnUrl = null)
+public async Task<IActionResult> LoginWith2fa(
+    bool rememberMe, string? returnUrl = null)
 {
-    // Ensure the user has gone through the username & password screen first
+    // Get the user from the 2FA sign-in flow state
     var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
-
     if (user == null)
     {
-        throw new InvalidOperationException("Unable to load two-factor authentication user.");
+        throw new InvalidOperationException(
+            "Unable to load two-factor authentication user.");
     }
 
-    var model = new LoginWith2faViewModel { RememberMe = rememberMe };
     ViewData["ReturnUrl"] = returnUrl;
-
-    return View(model);
+    return View(new LoginWith2faViewModel { RememberMe = rememberMe });
 }
 
+// ─────────────────────────────────────────────
+// POST /Account/LoginWith2fa — Verify the 2FA code
+// ─────────────────────────────────────────────
 [HttpPost]
 [AllowAnonymous]
 [ValidateAntiForgeryToken]
-public async Task<IActionResult> LoginWith2fa(LoginWith2faViewModel model, bool rememberMe, string? returnUrl = null)
+public async Task<IActionResult> LoginWith2fa(
+    LoginWith2faViewModel model,
+    bool rememberMe,
+    string? returnUrl = null)
 {
-    if (!ModelState.IsValid)
-    {
-        return View(model);
-    }
+    if (!ModelState.IsValid) return View(model);
 
     var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
     if (user == null)
     {
-        throw new InvalidOperationException("Unable to load two-factor authentication user.");
+        throw new InvalidOperationException(
+            "Unable to load two-factor authentication user.");
     }
 
-    var authenticatorCode = model.TwoFactorCode.Replace(" ", string.Empty)
-                                                .Replace("-", string.Empty);
+    // Clean the code
+    var code = model.TwoFactorCode.Replace(" ", string.Empty)
+                                  .Replace("-", string.Empty);
 
+    // Verify and complete sign-in
     var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
-        authenticatorCode,
+        code,
         rememberMe,
-        model.RememberMachine);
+        false); // preventRememberBrowser — whether to remember this device
 
     if (result.Succeeded)
     {
-        _logger.LogInformation("User with ID '{UserId}' logged in with 2fa.", user.Id);
+        _logger.LogInformation(
+            "User {UserId} logged in with 2FA.", user.Id);
         return RedirectToLocal(returnUrl);
     }
 
     if (result.IsLockedOut)
     {
-        _logger.LogWarning("User with ID '{UserId}' account locked out.", user.Id);
+        _logger.LogWarning(
+            "User {UserId} locked out during 2FA.", user.Id);
         return RedirectToAction("Lockout");
     }
 
-    _logger.LogWarning("Invalid authenticator code entered for user with ID '{UserId}'.", user.Id);
-    ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
+    ModelState.AddModelError(string.Empty,
+        "Invalid authenticator code.");
     return View(model);
 }
 
+// ─────────────────────────────────────────────
+// GET /Account/LoginWithRecoveryCode — Show recovery code form
+// ─────────────────────────────────────────────
 [HttpGet]
 [AllowAnonymous]
-public async Task<IActionResult> LoginWithRecoveryCode(string? returnUrl = null)
+public async Task<IActionResult> LoginWithRecoveryCode(
+    string? returnUrl = null)
 {
     var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
     if (user == null)
     {
-        throw new InvalidOperationException("Unable to load two-factor authentication user.");
+        throw new InvalidOperationException(
+            "Unable to load two-factor authentication user.");
     }
 
     ViewData["ReturnUrl"] = returnUrl;
     return View();
 }
 
+// ─────────────────────────────────────────────
+// POST /Account/LoginWithRecoveryCode — Verify recovery code
+// ─────────────────────────────────────────────
 [HttpPost]
 [AllowAnonymous]
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> LoginWithRecoveryCode(
-    LoginWithRecoveryCodeViewModel model, 
+    LoginWithRecoveryCodeViewModel model,
     string? returnUrl = null)
 {
-    if (!ModelState.IsValid)
-    {
-        return View(model);
-    }
+    if (!ModelState.IsValid) return View(model);
 
     var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
     if (user == null)
     {
-        throw new InvalidOperationException("Unable to load two-factor authentication user.");
+        throw new InvalidOperationException(
+            "Unable to load two-factor authentication user.");
     }
 
-    var recoveryCode = model.RecoveryCode.Replace(" ", string.Empty);
+    var code = model.RecoveryCode.Replace(" ", string.Empty);
 
-    var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
+    var result = await _signInManager
+        .TwoFactorRecoveryCodeSignInAsync(code);
 
     if (result.Succeeded)
     {
-        _logger.LogInformation("User with ID '{UserId}' logged in with a recovery code.", user.Id);
+        _logger.LogInformation(
+            "User {UserId} logged in with recovery code.",
+            user.Id);
         return RedirectToLocal(returnUrl);
     }
 
     if (result.IsLockedOut)
     {
-        _logger.LogWarning("User with ID '{UserId}' account locked out.", user.Id);
         return RedirectToAction("Lockout");
     }
 
-    _logger.LogWarning("Invalid recovery code entered for user with ID '{UserId}'.", user.Id);
-    ModelState.AddModelError(string.Empty, "Invalid recovery code.");
+    ModelState.AddModelError(string.Empty,
+        "Invalid recovery code.");
     return View(model);
+}
+
+private IActionResult RedirectToLocal(string? returnUrl)
+{
+    if (!string.IsNullOrEmpty(returnUrl)
+        && Url.IsLocalUrl(returnUrl))
+        return Redirect(returnUrl);
+    return RedirectToAction("Index", "Home");
 }
 ```
 
+### Why This Matters
+
+2FA is one of the most effective security improvements you can add. This video walks through the entire flow — generating keys, building the QR code URI, verifying codes, handling recovery codes, and integrating 2FA into the login process. Viewers leave with a complete, working 2FA implementation.
+
 ---
 
-## 16. External Authentication Providers
+## Video 16 — External Authentication Providers
 
-### Setting Up External Login Providers
+### What We're Building
 
-ASP.NET Core Identity supports external authentication providers like Google, Facebook, Microsoft, Twitter, and others. This allows users to sign in using their existing accounts on these platforms, simplifying the registration and login process while providing a more secure authentication method (since these providers have sophisticated security measures).
+Integrating Google, Facebook, and Microsoft login — registering providers, handling the OAuth callback, linking external accounts to existing users, and managing external logins.
 
-First, register your application with the external provider to obtain client ID and secret:
+### Registering External Providers
+
+In `Program.cs`:
 
 ```csharp
-// In Program.cs
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
         options.CallbackPath = "/signin-google";
-        
-        // Request additional scopes
         options.Scope.Add("profile");
         options.Scope.Add("email");
     })
@@ -3288,13 +3436,13 @@ builder.Services.AddAuthentication()
     });
 ```
 
-Store credentials in `appsettings.json` (or better, in user secrets or environment variables):
+In `appsettings.json` (or user secrets / environment variables in production):
 
 ```json
 {
   "Authentication": {
     "Google": {
-      "ClientId": "your-google-client-id",
+      "ClientId": "your-google-client-id.apps.googleusercontent.com",
       "ClientSecret": "your-google-client-secret"
     },
     "Facebook": {
@@ -3309,426 +3457,468 @@ Store credentials in `appsettings.json` (or better, in user secrets or environme
 }
 ```
 
-### Handling External Login
-
-Create controller actions to handle external login:
+### Handling External Login Callback
 
 ```csharp
-[HttpPost]
-[AllowAnonymous]
-[ValidateAntiForgeryToken]
-public IActionResult ExternalLogin(string provider, string? returnUrl = null)
+public class AccountController : Controller
 {
-    // Request a redirect to the external login provider
-    var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { returnUrl });
-    var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-    return Challenge(properties, provider);
-}
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
-[HttpGet]
-[AllowAnonymous]
-public async Task<IActionResult> ExternalLoginCallback(string? returnUrl = null, string? remoteError = null)
-{
-    if (remoteError != null)
+    // ─────────────────────────────────────────────
+    // POST /Account/ExternalLogin — Initiate external login
+    // Called when user clicks "Login with Google" button
+    // ─────────────────────────────────────────────
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public IActionResult ExternalLogin(string provider, string? returnUrl = null)
     {
-        ModelState.AddModelError(string.Empty, $"Error from external provider: {remoteError}");
-        return RedirectToAction("Login");
+        // Configure the redirect to the external provider
+        var redirectUrl = Url.Action(
+            "ExternalLoginCallback", "Account",
+            new { returnUrl });
+
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties(
+            provider, redirectUrl);
+
+        // Challenge → redirect to the external provider
+        return Challenge(properties, provider);
     }
 
-    var info = await _signInManager.GetExternalLoginInfoAsync();
-    if (info == null)
+    // ─────────────────────────────────────────────
+    // GET /Account/ExternalLoginCallback — Handle the callback
+    // The external provider redirects here after authentication
+    // ─────────────────────────────────────────────
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExternalLoginCallback(
+        string? returnUrl = null, string? remoteError = null)
     {
-        return RedirectToAction("Login");
-    }
-
-    // Sign in the user with this external login provider if they already have an account
-    var result = await _signInManager.ExternalLoginSignInAsync(
-        info.LoginProvider,
-        info.ProviderKey,
-        isPersistent: false,
-        bypassTwoFactor: true);
-
-    if (result.Succeeded)
-    {
-        _logger.LogInformation("User logged in with {Name} provider.", info.LoginProvider);
-        return RedirectToLocal(returnUrl);
-    }
-
-    if (result.IsLockedOut)
-    {
-        return RedirectToAction("Lockout");
-    }
-
-    // If the user does not have an account, show registration form
-    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-    var name = info.Principal.FindFirstValue(ClaimTypes.Name);
-
-    var model = new ExternalLoginViewModel
-    {
-        Email = email,
-        Name = name,
-        Provider = info.LoginProvider,
-        ReturnUrl = returnUrl
-    };
-
-    return View("ExternalLoginConfirmation", model);
-}
-
-[HttpPost]
-[AllowAnonymous]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> ExternalLoginConfirmation(ExternalLoginViewModel model, string? returnUrl = null)
-{
-    if (!ModelState.IsValid)
-    {
-        return View(model);
-    }
-
-    var info = await _signInManager.GetExternalLoginInfoAsync();
-    if (info == null)
-    {
-        return RedirectToAction("Login");
-    }
-
-    // Check if email already exists
-    var existingUser = await _userManager.FindByEmailAsync(model.Email);
-    if (existingUser != null)
-    {
-        // Add external login to existing account
-        var addLoginResult = await _userManager.AddLoginAsync(existingUser, info);
-        if (addLoginResult.Succeeded)
+        // Handle errors from the external provider
+        if (remoteError != null)
         {
-            await _signInManager.SignInAsync(existingUser, isPersistent: false);
+            ModelState.AddModelError(string.Empty,
+                $"Error from external provider: {remoteError}");
+            return RedirectToAction("Login");
+        }
+
+        // Get the external login info (claims from the provider)
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        if (info == null)
+        {
+            return RedirectToAction("Login");
+        }
+
+        // Try to sign in with this external login
+        // If the user already has this external login linked, they're signed in
+        var result = await _signInManager.ExternalLoginSignInAsync(
+            info.LoginProvider,
+            info.ProviderKey,
+            isPersistent: false,
+            bypassTwoFactor: true);
+
+        if (result.Succeeded)
+        {
+            _logger.LogInformation(
+                "User logged in with {Provider}",
+                info.LoginProvider);
             return RedirectToLocal(returnUrl);
         }
 
-        AddErrors(addLoginResult);
-        return View(model);
-    }
-
-    // Create new user
-    var user = new ApplicationUser
-    {
-        UserName = model.Email,
-        Email = model.Email,
-        FirstName = model.Name?.Split(' ').FirstOrDefault(),
-        LastName = model.Name?.Split(' ').Skip(1).FirstOrDefault(),
-        EmailConfirmed = true, // External providers verify email
-        CreatedAt = DateTime.UtcNow
-    };
-
-    var createResult = await _userManager.CreateAsync(user);
-    if (createResult.Succeeded)
-    {
-        // Add external login
-        var addLoginResult = await _userManager.AddLoginAsync(user, info);
-        if (addLoginResult.Succeeded)
+        if (result.IsLockedOut)
         {
-            // Add default role
-            await _userManager.AddToRoleAsync(user, "User");
-
-            await _signInManager.SignInAsync(user, isPersistent: false);
-            _logger.LogInformation("User created account using {Provider} provider.", info.LoginProvider);
-            return RedirectToLocal(returnUrl);
+            return RedirectToAction("Lockout");
         }
 
-        // If adding login fails, delete the created user
-        await _userManager.DeleteAsync(user);
-        AddErrors(addLoginResult);
-    }
-    else
-    {
-        AddErrors(createResult);
+        // If we get here, the user doesn't have an account yet.
+        // Extract info from the external claims to pre-fill the registration form.
+        var email = info.Principal.FindFirstValue(
+            System.Security.Claims.ClaimTypes.Email);
+        var name = info.Principal.FindFirstValue(
+            System.Security.Claims.ClaimTypes.Name);
+
+        var model = new ExternalLoginViewModel
+        {
+            Email = email,
+            Name = name,
+            Provider = info.LoginProvider,
+            ReturnUrl = returnUrl
+        };
+
+        return View("ExternalLoginConfirmation", model);
     }
 
-    return View(model);
+    // ─────────────────────────────────────────────
+    // POST /Account/ExternalLoginConfirmation — Create account
+    // ─────────────────────────────────────────────
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExternalLoginConfirmation(
+        ExternalLoginViewModel model, string? returnUrl = null)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        if (info == null) return RedirectToAction("Login");
+
+        // Check if an account with this email already exists
+        var existingUser = await _userManager.FindByEmailAsync(model.Email);
+
+        if (existingUser != null)
+        {
+            // Link the external login to the existing account
+            var linkResult = await _userManager.AddLoginAsync(existingUser, info);
+            if (linkResult.Succeeded)
+            {
+                await _signInManager.SignInAsync(existingUser, isPersistent: false);
+                return RedirectToLocal(returnUrl);
+            }
+
+            foreach (var error in linkResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return View(model);
+        }
+
+        // Create a new user account
+        var user = new ApplicationUser
+        {
+            UserName = model.Email,
+            Email = model.Email,
+            FirstName = model.Name?.Split(' ').FirstOrDefault(),
+            LastName = model.Name?.Split(' ').Skip(1).FirstOrDefault(),
+            EmailConfirmed = true, // External providers verified the email
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var createResult = await _userManager.CreateAsync(user);
+        if (createResult.Succeeded)
+        {
+            // Link the external login
+            var linkResult = await _userManager.AddLoginAsync(user, info);
+            if (linkResult.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "User");
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                _logger.LogInformation(
+                    "User created account via {Provider}",
+                    info.LoginProvider);
+                return RedirectToLocal(returnUrl);
+            }
+
+            // If linking fails, clean up the created user
+            await _userManager.DeleteAsync(user);
+            foreach (var error in linkResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+        }
+        else
+        {
+            foreach (var error in createResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+        }
+
+        return View(model);
+    }
+}
+
+public class ExternalLoginViewModel
+{
+    public string? Email { get; set; }
+    public string? Name { get; set; }
+    public string? Provider { get; set; }
+    public string? ReturnUrl { get; set; }
 }
 ```
 
 ### Managing External Logins
 
-Users may want to add or remove external logins from their account:
-
 ```csharp
+// GET /Account/ExternalLogins — Show linked external logins
 [HttpGet]
 [Authorize]
 public async Task<IActionResult> ExternalLogins()
 {
     var user = await _userManager.GetUserAsync(User);
-    if (user == null)
-    {
-        return NotFound();
-    }
+    if (user == null) return NotFound();
 
+    // Get currently linked external logins
     var currentLogins = await _userManager.GetLoginsAsync(user);
-    var otherLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync())
-        .Where(auth => currentLogins.All(ul => auth.Name != ul.LoginProvider))
+
+    // Get available external providers not yet linked
+    var otherLogins = (await _signInManager
+            .GetExternalAuthenticationSchemesAsync())
+        .Where(auth => currentLogins
+            .All(ul => auth.Name != ul.LoginProvider))
         .ToList();
 
     var model = new ExternalLoginsViewModel
     {
         CurrentLogins = currentLogins,
         OtherLogins = otherLogins,
-        ShowRemoveButton = user.PasswordHash != null || currentLogins.Count > 1
+        ShowRemoveButton = user.PasswordHash != null
+                           || currentLogins.Count > 1
     };
 
     return View(model);
 }
 
+// POST /Account/LinkLogin — Start linking a new external login
 [HttpPost]
 [Authorize]
 [ValidateAntiForgeryToken]
-public async Task<IActionResult> LinkLogin(string provider)
+public IActionResult LinkLogin(string provider)
 {
-    // Request a redirect to the external login provider to link a login
     var redirectUrl = Url.Action("LinkLoginCallback");
     var properties = _signInManager.ConfigureExternalAuthenticationProperties(
-        provider, 
-        redirectUrl, 
+        provider, redirectUrl,
         _userManager.GetUserId(User));
-    
+
     return Challenge(properties, provider);
 }
 
+// GET /Account/LinkLoginCallback — Complete linking
 [HttpGet]
 [Authorize]
 public async Task<IActionResult> LinkLoginCallback()
 {
     var user = await _userManager.GetUserAsync(User);
-    if (user == null)
-    {
-        return NotFound();
-    }
+    if (user == null) return NotFound();
 
-    var info = await _signInManager.GetExternalLoginInfoAsync(_userManager.GetUserId(User));
+    var info = await _signInManager.GetExternalLoginInfoAsync(
+        _userManager.GetUserId(User));
     if (info == null)
     {
-        return RedirectToAction("ExternalLogins", new { Message = ManageMessageId.Error });
+        return RedirectToAction("ExternalLogins",
+            new { Message = "Error linking login." });
     }
 
     var result = await _userManager.AddLoginAsync(user, info);
     if (!result.Succeeded)
     {
-        return RedirectToAction("ExternalLogins", new { Message = ManageMessageId.Error });
+        return RedirectToAction("ExternalLogins",
+            new { Message = "Error linking login." });
     }
 
-    // Clear the existing external cookie
+    // Clear the external cookie and sign in with the updated user
     await _signInManager.SignOutAsync();
-
-    // Sign in the user with the new external login
     await _signInManager.SignInAsync(user, isPersistent: false);
 
-    return RedirectToAction("ExternalLogins", new { Message = ManageMessageId.AddLoginSuccess });
+    return RedirectToAction("ExternalLogins",
+        new { Message = "External login linked." });
 }
 
+// POST /Account/RemoveLogin — Remove an external login
 [HttpPost]
 [Authorize]
 [ValidateAntiForgeryToken]
-public async Task<IActionResult> RemoveLogin(RemoveLoginViewModel model)
+public async Task<IActionResult> RemoveLogin(
+    RemoveLoginViewModel model)
 {
     var user = await _userManager.GetUserAsync(User);
-    if (user == null)
-    {
-        return NotFound();
-    }
+    if (user == null) return NotFound();
 
-    var result = await _userManager.RemoveLoginAsync(user, model.LoginProvider, model.ProviderKey);
+    var result = await _userManager.RemoveLoginAsync(
+        user, model.LoginProvider, model.ProviderKey);
+
     if (!result.Succeeded)
     {
-        return RedirectToAction("ExternalLogins", new { Message = ManageMessageId.Error });
+        return RedirectToAction("ExternalLogins",
+            new { Message = "Error removing login." });
     }
 
     await _signInManager.SignInAsync(user, isPersistent: false);
-    return RedirectToAction("ExternalLogins", new { Message = ManageMessageId.RemoveLoginSuccess });
+    return RedirectToAction("ExternalLogins",
+        new { Message = "External login removed." });
+}
+
+public class RemoveLoginViewModel
+{
+    public string LoginProvider { get; set; } = string.Empty;
+    public string ProviderKey { get; set; } = string.Empty;
+}
+
+public class ExternalLoginsViewModel
+{
+    public IEnumerable<AuthenticationScheme> CurrentLogins { get; set; }
+    public IEnumerable<AuthenticationScheme> OtherLogins { get; set; }
+    public bool ShowRemoveButton { get; set; }
 }
 ```
 
+### Why This Matters
+
+External login reduces friction — users don't need to create yet another password. But it introduces complexity: linking accounts, handling provider errors, pre-filling registration from provider claims, and managing the lifecycle of external logins. This video covers the complete flow.
+
 ---
 
-## 17. Token Providers and Usage
+## Video 17 — Token Providers
 
-### Understanding Token Providers
+### What We're Building
 
-Identity uses token providers for generating and validating tokens used in various security-sensitive operations: email confirmation, password reset, phone number change, and two-factor authentication. The default token provider uses the Data Protection API to generate tokens that are cryptographically secure and bound to a specific purpose and user.
+Understanding how Identity generates and validates tokens for email confirmation, password reset, and 2FA, configuring token lifetimes, and writing a custom token provider.
 
-Token providers implement `IUserTwoFactorTokenProvider<TUser>` and are registered in Identity configuration. When you call methods like `GenerateEmailConfirmationTokenAsync` or `GeneratePasswordResetTokenAsync`, Identity uses the appropriate registered provider to create a token. The token is then validated using the same provider when the user submits it.
+### How Token Providers Work
 
-### Default Token Providers
+When you call `GenerateEmailConfirmationTokenAsync(user)`, Identity delegates to a token provider registered under the `"EmailConfirmation"` purpose. The default provider uses ASP.NET Core Data Protection to generate a cryptographically secure, encrypted, and signed token that includes:
 
-Identity includes several built-in token providers:
+- The user's ID
+- The user's security stamp (so the token is invalidated if security changes)
+- The purpose (so tokens for different operations aren't interchangeable)
+- An expiration time
 
-- **DataProtectorTokenProvider**: The default provider for email confirmation, password reset, and similar tokens. Uses ASP.NET Core Data Protection to encrypt and sign tokens.
-
-- **AuthenticatorTokenProvider**: Used for TOTP-based two-factor authentication with authenticator apps.
-
-- **PhoneNumberTokenProvider**: Generates numeric tokens suitable for SMS-based two-factor authentication.
-
-- **EmailTokenProvider**: Generates short tokens suitable for email-based two-factor authentication.
+When `ConfirmEmailAsync(user, token)` is called, the same provider decrypts and validates the token.
 
 ### Configuring Token Lifetimes
 
-Configure token lifetimes based on the security requirements of each operation:
-
 ```csharp
+// Default token provider — used for email confirmation, password reset, etc.
 builder.Services.Configure<DataProtectorTokenProviderOptions>(options =>
 {
-    // Default token lifetime for password reset, email confirmation, etc.
-    options.TokenLifespan = TimeSpan.FromHours(3);
+    options.TokenLifespan = TimeSpan.FromHours(3); // 3 hours
 });
 
+// Email confirmation — users might not check email immediately, so longer
 builder.Services.Configure<EmailConfirmationTokenProviderOptions>(options =>
 {
-    // Longer lifetime for email confirmation (users might not check email immediately)
     options.TokenLifespan = TimeSpan.FromDays(7);
 });
 
+// Password reset — security-sensitive, so shorter
 builder.Services.Configure<PasswordResetTokenProviderOptions>(options =>
 {
-    // Shorter lifetime for password reset (security-sensitive)
     options.TokenLifespan = TimeSpan.FromHours(1);
 });
 ```
 
-### Creating a Custom Token Provider
+### The Token Flow — Email Confirmation Example
 
-For specialized requirements, create a custom token provider:
+1. User registers → `GenerateEmailConfirmationTokenAsync(user)` creates a token
+2. Token is embedded in a link sent via email: `/Account/ConfirmEmail?userId=...&token=...`
+3. User clicks the link → `ConfirmEmailAsync(user, token)` validates the token
+4. If valid → `EmailConfirmed = true`, user can log in
+5. If invalid/expired → show error page
+
+### Using Token APIs
 
 ```csharp
-public class ShortLivedTokenProvider : IUserTwoFactorTokenProvider<ApplicationUser>
+// Generate a token
+var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+// Validate a token
+var result = await _userManager.ConfirmEmailAsync(user, token);
+// result.Succeeded = true if valid
+
+// Generate a password reset token
+var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+// Reset the password
+var resetResult = await _userManager.ResetPasswordAsync(
+    user, resetToken, newPassword);
+
+// Generate a custom token (for any purpose)
+var customToken = await _userManager.GenerateUserTokenAsync(
+    user, "MyCustomPurpose", "MyCustomProvider");
+
+// Validate a custom token
+var isValid = await _userManager.VerifyUserTokenAsync(
+    user, "MyCustomPurpose", "MyCustomProvider", customToken);
+```
+
+### Writing a Custom Token Provider
+
+```csharp
+using Microsoft.AspNetCore.Identity;
+
+public class ShortLivedTokenProvider
+    : IUserTwoFactorTokenProvider<ApplicationUser>
 {
     public const string ProviderName = "ShortLived";
 
-    public Task<bool> CanGenerateTwoFactorTokenAsync(UserManager<ApplicationUser> manager, ApplicationUser user)
+    // Can this provider generate a token for this user?
+    public Task<bool> CanGenerateTwoFactorTokenAsync(
+        UserManager<ApplicationUser> manager,
+        ApplicationUser user)
     {
         return Task.FromResult(true);
     }
 
-    public Task<string> GenerateAsync(string purpose, UserManager<ApplicationUser> manager, ApplicationUser user)
+    // Generate a token for the given purpose
+    public Task<string> GenerateAsync(
+        string purpose,
+        UserManager<ApplicationUser> manager,
+        ApplicationUser user)
     {
-        // Generate a 6-digit numeric token
+        // Generate a 6-digit numeric code
         var random = new Random();
         var token = random.Next(100000, 999999).ToString();
-        
-        // In production, you'd store this securely associated with the user and purpose
-        // and set an expiration time
-        
+
+        // In production, you'd store this securely with an expiration time
+        // associated with the user and purpose, then validate against stored value.
+
         return Task.FromResult(token);
     }
 
-    public Task<bool> ValidateAsync(string purpose, string token, UserManager<ApplicationUser> manager, ApplicationUser user)
+    // Validate a token for the given purpose
+    public Task<bool> ValidateAsync(
+        string purpose,
+        string token,
+        UserManager<ApplicationUser> manager,
+        ApplicationUser user)
     {
-        // Validate the token against stored value
-        // This is a simplified example - production code would use secure storage
-        
-        return Task.FromResult(!string.IsNullOrEmpty(token) && token.Length == 6);
+        // Simplified validation — in production, compare against stored value
+        return Task.FromResult(
+            !string.IsNullOrEmpty(token) && token.Length == 6);
     }
 }
+```
 
-// Register the provider
+Register:
+
+```csharp
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders()
     .AddTokenProvider<ShortLivedTokenProvider>(ShortLivedTokenProvider.ProviderName);
+```
 
-// Use the custom provider
+Use:
+
+```csharp
 var token = await _userManager.GenerateUserTokenAsync(
-    user, 
-    ShortLivedTokenProvider.ProviderName, 
-    "MyPurpose");
+    user, "MyPurpose", ShortLivedTokenProvider.ProviderName);
 
 var isValid = await _userManager.VerifyUserTokenAsync(
-    user,
-    ShortLivedTokenProvider.ProviderName,
-    "MyPurpose",
-    token);
+    user, "MyPurpose", ShortLivedTokenProvider.ProviderName, token);
 ```
+
+### Why This Matters
+
+Tokens are the glue between Identity and real-world workflows — email confirmation, password reset, 2FA codes. Understanding how they're generated, what's inside them, how they're validated, and how to configure lifetimes means you can troubleshoot token failures and customize token behavior for your application's needs.
 
 ---
 
-## 18. Customizing Identity
+## Video 18 — Customizing Identity — Stores, SignInManager, and Deep Extensibility
 
-### Extending IdentityUser and IdentityRole
+### What We're Building
 
-We've covered creating custom user and role classes earlier, but let's explore more advanced customization scenarios. When you extend IdentityUser, your custom properties are automatically included in the database schema. You can also add validation, computed properties, and navigation properties:
-
-```csharp
-public class ApplicationUser : IdentityUser<int>
-{
-    // Personal Information
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
-    
-    // Computed property (not stored in database)
-    [NotMapped]
-    public string FullName => $"{FirstName} {LastName}".Trim();
-    
-    // User preferences
-    public string? TimeZone { get; set; } = "UTC";
-    public string? Language { get; set; } = "en";
-    public string? Theme { get; set; } = "light";
-    
-    // Notification preferences
-    public bool EmailNotificationsEnabled { get; set; } = true;
-    public bool SmsNotificationsEnabled { get; set; } = false;
-    
-    // Profile information
-    public string? AvatarUrl { get; set; }
-    public string? Bio { get; set; }
-    
-    // Account status
-    public AccountStatus Status { get; set; } = AccountStatus.Active;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? LastLoginAt { get; set; }
-    public DateTime? EmailConfirmedAt { get; set; }
-    
-    // Subscription information
-    public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
-    public DateTime? SubscriptionExpiresAt { get; set; }
-    
-    // Navigation properties
-    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public virtual ICollection<UserClaim> Claims { get; set; } = new List<UserClaim>();
-    public virtual ICollection<UserLogin> Logins { get; set; } = new List<UserLogin>();
-    public virtual ICollection<UserToken> Tokens { get; set; } = new List<UserToken>();
-    public virtual ICollection<UserActivity> Activities { get; set; } = new List<UserActivity>();
-}
-
-public enum AccountStatus
-{
-    Active,
-    Suspended,
-    Deleted,
-    PendingVerification
-}
-
-public enum SubscriptionTier
-{
-    Free,
-    Basic,
-    Premium,
-    Enterprise
-}
-
-// Activity tracking
-public class UserActivity
-{
-    public int Id { get; set; }
-    public int UserId { get; set; }
-    public ApplicationUser User { get; set; } = null!;
-    public string ActivityType { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string? IpAddress { get; set; }
-    public string? UserAgent { get; set; }
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-}
-```
+Going deep on customization: custom user stores (when you need full control over data access), overriding `SignInManager` to customize sign-in behavior, and advanced entity extensions.
 
 ### Custom User Store
 
-For advanced scenarios where you need complete control over data access, implement custom stores:
+When the default EF Core store isn't enough — e.g., you need to store users in a NoSQL database, or you need custom queries that the default store doesn't support — you can implement `IUserStore<TUser>` and the relevant interfaces yourself:
 
 ```csharp
-public class CustomUserStore : 
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+public class CustomUserStore :
     IUserStore<ApplicationUser>,
     IUserPasswordStore<ApplicationUser>,
     IUserEmailStore<ApplicationUser>,
@@ -3744,77 +3934,266 @@ public class CustomUserStore :
         _context = context;
     }
 
-    public async Task<IdentityResult> CreateAsync(ApplicationUser user, CancellationToken cancellationToken)
+    // ── CRUD Operations ──
+    public async Task<IdentityResult> CreateAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
     {
         _context.Users.Add(user);
         await _context.SaveChangesAsync(cancellationToken);
         return IdentityResult.Success;
     }
 
-    public async Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken)
+    public async Task<IdentityResult> UpdateAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
     {
         _context.Users.Update(user);
         await _context.SaveChangesAsync(cancellationToken);
         return IdentityResult.Success;
     }
 
-    public async Task<IdentityResult> DeleteAsync(ApplicationUser user, CancellationToken cancellationToken)
+    public async Task<IdentityResult> DeleteAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
     {
         _context.Users.Remove(user);
         await _context.SaveChangesAsync(cancellationToken);
         return IdentityResult.Success;
     }
 
-    public Task<ApplicationUser?> FindByIdAsync(string userId, CancellationToken cancellationToken)
-    {
-        return _context.Users.FindAsync(new object[] { int.Parse(userId) }, cancellationToken).AsTask();
-    }
-
-    public Task<ApplicationUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
+    // ── Lookup Methods ──
+    public Task<ApplicationUser?> FindByIdAsync(
+        string userId, CancellationToken cancellationToken)
     {
         return _context.Users
-            .FirstOrDefaultAsync(u => u.NormalizedUserName == normalizedUserName, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == int.Parse(userId), cancellationToken)
+            .AsTask();
     }
 
-    public Task<string?> GetNormalizedUserNameAsync(ApplicationUser user, CancellationToken cancellationToken)
+    public Task<ApplicationUser?> FindByNameAsync(
+        string normalizedUserName, CancellationToken cancellationToken)
+    {
+        return _context.Users
+            .FirstOrDefaultAsync(u => u.NormalizedUserName == normalizedUserName,
+                cancellationToken).AsTask();
+    }
+
+    // ── Property Getters/Setters ──
+    public Task<string?> GetNormalizedUserNameAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
     {
         return Task.FromResult(user.NormalizedUserName);
     }
 
-    public Task<string> GetUserIdAsync(ApplicationUser user, CancellationToken cancellationToken)
+    public Task<string> GetUserIdAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
     {
         return Task.FromResult(user.Id.ToString());
     }
 
-    public Task<string?> GetUserNameAsync(ApplicationUser user, CancellationToken cancellationToken)
+    public Task<string?> GetUserNameAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
     {
         return Task.FromResult(user.UserName);
     }
 
-    public Task SetNormalizedUserNameAsync(ApplicationUser user, string? normalizedName, CancellationToken cancellationToken)
+    public Task SetNormalizedUserNameAsync(
+        ApplicationUser user, string? normalizedName,
+        CancellationToken cancellationToken)
     {
         user.NormalizedUserName = normalizedName;
         return Task.CompletedTask;
     }
 
-    public Task SetUserNameAsync(ApplicationUser user, string? userName, CancellationToken cancellationToken)
+    public Task SetUserNameAsync(
+        ApplicationUser user, string? userName,
+        CancellationToken cancellationToken)
     {
         user.UserName = userName;
         return Task.CompletedTask;
     }
 
-    // Implement other interface methods similarly...
+    // ── Password Store ──
+    public Task SetPasswordHashAsync(
+        ApplicationUser user, string? passwordHash,
+        CancellationToken cancellationToken)
+    {
+        user.PasswordHash = passwordHash;
+        return Task.CompletedTask;
+    }
 
+    public Task<string?> GetPasswordHashAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.PasswordHash);
+    }
+
+    // ── Email Store ──
+    public Task<string?> GetEmailAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.Email);
+    }
+
+    public Task<bool> GetEmailConfirmedAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.EmailConfirmed);
+    }
+
+    public Task SetEmailAsync(
+        ApplicationUser user, string? email,
+        CancellationToken cancellationToken)
+    {
+        user.Email = email;
+        return Task.CompletedTask;
+    }
+
+    public Task SetEmailConfirmedAsync(
+        ApplicationUser user, bool confirmed,
+        CancellationToken cancellationToken)
+    {
+        user.EmailConfirmed = confirmed;
+        return Task.CompletedTask;
+    }
+
+    // ── Role Store ──
+    public Task AddToRoleAsync(
+        ApplicationUser user, string roleName,
+        CancellationToken cancellationToken)
+    {
+        // Add to the UserRoles junction table
+        _context.UserRoles.Add(new IdentityUserRole<int>
+        {
+            UserId = user.Id,
+            RoleId = /* resolve role ID from roleName */
+        });
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveFromRoleAsync(
+        ApplicationUser user, string roleName,
+        CancellationToken cancellationToken)
+    {
+        // Remove from the junction table
+        return Task.CompletedTask;
+    }
+
+    public Task<IList<string>> GetRolesAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        // Query the junction table and return role names
+        return Task.FromResult<IList<string>>(new List<string>());
+    }
+
+    public Task<bool> IsInRoleAsync(
+        ApplicationUser user, string roleName,
+        CancellationToken cancellationToken)
+    {
+        return Task.FromResult(false);
+    }
+
+    // ── Claim Store ──
+    public Task AddClaimAsync(
+        ApplicationUser user, Claim claim,
+        CancellationToken cancellationToken)
+    {
+        _context.UserClaims.Add(new IdentityUserClaim<int>
+        {
+            UserId = user.Id,
+            ClaimType = claim.Type,
+            ClaimValue = claim.Value
+        });
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveClaimAsync(
+        ApplicationUser user, Claim claim,
+        CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<IList<Claim>> GetClaimsAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<IList<Claim>>(new List<Claim>());
+    }
+
+    // ── Lockout Store ──
+    public Task<DateTimeOffset?> GetLockoutEndDateAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.LockoutEnd);
+    }
+
+    public Task<int> GetAccessFailedCountAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.AccessFailedCount);
+    }
+
+    public Task<bool> GetLockoutEnabledAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.LockoutEnabled);
+    }
+
+    public Task SetLockoutEndDateAsync(
+        ApplicationUser user, DateTimeOffset? lockoutEnd,
+        CancellationToken cancellationToken)
+    {
+        user.LockoutEnd = lockoutEnd;
+        return Task.CompletedTask;
+    }
+
+    public Task ResetAccessFailedCountAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        user.AccessFailedCount = 0;
+        return Task.CompletedTask;
+    }
+
+    public Task SetLockoutEnabledAsync(
+        ApplicationUser user, bool enabled,
+        CancellationToken cancellationToken)
+    {
+        user.LockoutEnabled = enabled;
+        return Task.CompletedTask;
+    }
+
+    // ── Security Stamp Store ──
+    public Task<string?> GetSecurityStampAsync(
+        ApplicationUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.SecurityStamp);
+    }
+
+    public Task SetSecurityStampAsync(
+        ApplicationUser user, string? stamp,
+        CancellationToken cancellationToken)
+    {
+        user.SecurityStamp = stamp;
+        return Task.CompletedTask;
+    }
+
+    // ── Dispose ──
     public void Dispose()
     {
-        // Clean up resources if needed
+        // Clean up if needed
     }
 }
 ```
 
+Register:
+
+```csharp
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddErrorDescriber<CustomErrorDescriber>() // Optional: custom error messages
+    .AddUserStore<CustomUserStore>(); // Use our custom store
+```
+
 ### Custom SignInManager
 
-Override SignInManager to customize sign-in behavior:
+Override `SignInManager` to add custom behavior during sign-in:
 
 ```csharp
 public class CustomSignInManager : SignInManager<ApplicationUser>
@@ -3829,16 +4208,16 @@ public class CustomSignInManager : SignInManager<ApplicationUser>
         ILogger<CustomSignInManager> logger,
         IAuthenticationSchemeProvider schemes,
         IUserConfirmation<ApplicationUser> confirmation)
-        : base(userManager, contextAccessor, claimsFactory, optionsAccessor, logger, schemes, confirmation)
+        : base(userManager, contextAccessor, claimsFactory,
+              optionsAccessor, logger, schemes, confirmation)
     {
         _logger = logger;
     }
 
+    // Override password sign-in to add custom checks
     public override async Task<SignInResult> PasswordSignInAsync(
-        string userName, 
-        string password,
-        bool isPersistent, 
-        bool lockoutOnFailure)
+        string userName, string password,
+        bool isPersistent, bool lockoutOnFailure)
     {
         var user = await UserManager.FindByNameAsync(userName);
         if (user == null)
@@ -3846,81 +4225,67 @@ public class CustomSignInManager : SignInManager<ApplicationUser>
             return SignInResult.Failed;
         }
 
-        // Custom check: Account status
+        // Custom check: account status
         if (user.Status != AccountStatus.Active)
         {
-            _logger.LogWarning("Login attempt for inactive account: {UserId}", user.Id);
+            _logger.LogWarning(
+                "Login attempt for inactive account: {UserId}", user.Id);
             return SignInResult.NotAllowed;
         }
 
-        // Check subscription status for premium features
-        if (user.SubscriptionTier != SubscriptionTier.Free && 
-            user.SubscriptionExpiresAt.HasValue && 
-            user.SubscriptionExpiresAt < DateTime.UtcNow)
+        // Custom check: subscription expiry
+        if (user.SubscriptionTier != SubscriptionTier.Free
+            && user.SubscriptionExpiresAt.HasValue
+            && user.SubscriptionExpiresAt < DateTime.UtcNow)
         {
-            // Subscription expired - could downgrade to free tier
+            // Downgrade to free tier
             user.SubscriptionTier = SubscriptionTier.Free;
             await UserManager.UpdateAsync(user);
         }
 
-        return await base.PasswordSignInAsync(userName, password, isPersistent, lockoutOnFailure);
+        // Delegate to the base implementation for the actual password check
+        return await base.PasswordSignInAsync(
+            userName, password, isPersistent, lockoutOnFailure);
     }
 
+    // Override sign-in to add custom logic (e.g., update last login, log the event)
     public override async Task SignInAsync(
-        ApplicationUser user, 
-        bool isPersistent, 
+        ApplicationUser user, bool isPersistent,
         string? authenticationMethod = null)
     {
-        // Update last login time
         user.LastLoginAt = DateTime.UtcNow;
         await UserManager.UpdateAsync(user);
 
-        // Log the sign-in
-        _logger.LogInformation("User signed in: {UserId} at {Time}", user.Id, DateTime.UtcNow);
+        _logger.LogInformation(
+            "User signed in: {UserId} at {Time}",
+            user.Id, DateTime.UtcNow);
 
         await base.SignInAsync(user, isPersistent, authenticationMethod);
     }
 }
+```
 
-// Register in Program.cs
+Register:
+
+```csharp
 builder.Services.AddScoped<SignInManager<ApplicationUser>, CustomSignInManager>();
 ```
 
+### Why This Matters
+
+Most applications never need custom stores or SignInManager overrides. But when you do — because you're using a non-relational database, have complex sign-in rules, or need to integrate with a legacy system — knowing how to implement these interfaces correctly is essential. This video shows the full pattern.
+
 ---
 
-## 19. Best Practices and Security
+## Video 19 — Production-Ready Security
 
-### Security Best Practices
+### What We're Building
 
-**Password Security:**
-- Use strong password policies but don't make them overly complex (NIST recommends minimum 8 characters, checking against known breached passwords)
-- Implement password hashing automatically through Identity (PBKDF2 with HMAC-SHA256)
-- Consider using breach password checking services
-- Never store or log passwords in plain text
+Taking Identity from a development setup to production-ready: secure cookie settings, strong password policies, audit logging, rate limiting considerations, and a troubleshooting guide for common errors.
 
-**Account Security:**
-- Enable account lockout to prevent brute force attacks
-- Implement two-factor authentication for sensitive operations
-- Use security stamps to invalidate sessions on security-relevant changes
-- Implement password reset with short-lived tokens
-
-**Session Security:**
-- Use secure, HttpOnly cookies for authentication
-- Set appropriate cookie expiration times
-- Implement sliding expiration for active users
-- Consider implementing concurrent session limits
-
-**General Security:**
-- Always use HTTPS in production
-- Validate all user inputs
-- Implement rate limiting on authentication endpoints
-- Log security-relevant events (login attempts, password changes, etc.)
-- Keep Identity packages updated
-
-### Configuration for Production
+### Production Configuration
 
 ```csharp
-// Production-ready Identity configuration
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 {
     // Strong password requirements
@@ -3936,30 +4301,27 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
 
-    // User settings
+    // Require email confirmation
     options.User.RequireUniqueEmail = true;
-
-    // Sign-in settings
     options.SignIn.RequireConfirmedEmail = true;
-    options.SignIn.RequireConfirmedPhoneNumber = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Secure cookie configuration
+// Secure cookie settings
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // HTTPS only
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.ExpireTimeSpan = TimeSpan.FromHours(1);
+    options.Cookie.SameSite = SameSiteMode.Strict; // Strict CSRF protection
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     options.SlidingExpiration = true;
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
-// Security stamp validation
+// Security stamp validation interval
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
     options.ValidationInterval = TimeSpan.FromMinutes(30);
@@ -3968,9 +4330,20 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 ### Audit Logging
 
-Implement comprehensive audit logging for security events:
+Track security-relevant events:
 
 ```csharp
+public class AuditLog
+{
+    public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;  // LOGIN, LOGIN_FAILED, PASSWORD_CHANGE, etc.
+    public string Description { get; set; } = string.Empty;
+    public string? IpAddress { get; set; }
+    public string? UserAgent { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
+
 public class AuditLogService
 {
     private readonly ApplicationDbContext _context;
@@ -3980,10 +4353,14 @@ public class AuditLogService
         _context = context;
     }
 
-    public async Task LogAsync(string userId, string action, string description, 
-        string? ipAddress = null, string? userAgent = null)
+    public async Task LogAsync(
+        string userId,
+        string action,
+        string description,
+        string? ipAddress = null,
+        string? userAgent = null)
     {
-        var log = new AuditLog
+        _context.AuditLogs.Add(new AuditLog
         {
             UserId = userId,
             Action = action,
@@ -3991,186 +4368,113 @@ public class AuditLogService
             IpAddress = ipAddress,
             UserAgent = userAgent,
             Timestamp = DateTime.UtcNow
-        };
-
-        _context.AuditLogs.Add(log);
+        });
         await _context.SaveChangesAsync();
     }
 }
-
-public class AuditLog
-{
-    public int Id { get; set; }
-    public string UserId { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string? IpAddress { get; set; }
-    public string? UserAgent { get; set; }
-    public DateTime Timestamp { get; set; }
-}
-
-// Use in AccountController
-public async Task<IActionResult> Login(LoginViewModel model)
-{
-    // ... validation ...
-
-    if (result.Succeeded)
-    {
-        await _auditLogService.LogAsync(
-            user.Id,
-            "LOGIN",
-            "User logged in successfully",
-            HttpContext.Connection.RemoteIpAddress?.ToString(),
-            Request.Headers.UserAgent);
-
-        // ... continue with login ...
-    }
-    else
-    {
-        await _auditLogService.LogAsync(
-            user?.Id ?? "UNKNOWN",
-            "LOGIN_FAILED",
-            $"Failed login attempt for {model.Email}",
-            HttpContext.Connection.RemoteIpAddress?.ToString(),
-            Request.Headers.UserAgent);
-    }
-}
 ```
 
----
+Use in your controllers:
 
-## 20. Troubleshooting Common Issues
+```csharp
+// After successful login
+await _auditLogService.LogAsync(
+    user.Id, "LOGIN", "User logged in successfully",
+    HttpContext.Connection.RemoteIpAddress?.ToString(),
+    Request.Headers.UserAgent);
 
-### Common Errors and Solutions
+// After failed login attempt
+await _auditLogService.LogAsync(
+    user?.Id ?? "UNKNOWN", "LOGIN_FAILED",
+    $"Failed login attempt for {model.Email}",
+    HttpContext.Connection.RemoteIpAddress?.ToString(),
+    Request.Headers.UserAgent);
 
-**"No authentication handler is configured"**
-```
-Error: No authentication handler is configured to authenticate for the scheme: Identity.Application
-
-Solution: Ensure app.UseAuthentication() is called before app.UseAuthorization() in Program.cs.
-The middleware order matters: Authentication must precede Authorization.
-```
-
-**"The entity type 'IdentityUserLogin<string>' requires a primary key"**
-```
-Error: The entity type 'IdentityUserLogin<string>' requires a primary key to be defined.
-
-Solution: Ensure your DbContext inherits from IdentityDbContext, not just DbContext.
-IdentityDbContext configures all the required keys and relationships.
-```
-
-**User is not authenticated after successful login**
-```
-Possible causes:
-1. Authentication middleware missing: Add app.UseAuthentication()
-2. Wrong middleware order: Authentication must come before Authorization
-3. Cookie not being created: Check browser settings for cookie blocking
-4. Scheme mismatch: Ensure default scheme is configured
-
-Solution:
-app.UseRouting();
-app.UseAuthentication(); // Must come before Authorization
-app.UseAuthorization();
+// After password change
+await _auditLogService.LogAsync(
+    user.Id, "PASSWORD_CHANGE", "Password was changed",
+    HttpContext.Connection.RemoteIpAddress?.ToString(),
+    Request.Headers.UserAgent);
 ```
 
-**Role authorization not working**
-```
-Possible causes:
-1. User doesn't actually have the role: Check database with _userManager.IsInRoleAsync()
-2. Cookie doesn't include role claims: Sign out and sign in again to refresh cookie
-3. Role name mismatch: Check case sensitivity (role names are typically stored uppercase)
+Register in `Program.cs`:
 
-Debug steps:
-var roles = await _userManager.GetRolesAsync(user);
-var isInRole = await _userManager.IsInRoleAsync(user, "Admin");
-var cookieRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role);
+```csharp
+builder.Services.AddScoped<AuditLogService>();
 ```
 
-**Email confirmation token invalid**
-```
-Possible causes:
-1. Token already used: Tokens are single-use
-2. Token expired: Check TokenLifespan configuration
-3. Security stamp changed: User's security stamp was updated after token generation
-4. URL encoding issues: Token contains special characters that need proper encoding
+### Common Errors and Fixes
 
-Solution:
-var decodedToken = WebUtility.UrlDecode(token);
-var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
-```
-
-**"Cannot resolve scoped service from root provider"**
-```
-Error when trying to access UserManager or other scoped services from singleton services.
-
-Solution: Inject IServiceProvider and create a scope:
-using var scope = _serviceProvider.CreateScope();
-var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-```
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `"No authentication handler is configured"` | `UseAuthentication()` missing or wrong order | Add `app.UseAuthentication()` before `app.UseAuthorization()` |
+| `"The entity type requires a primary key"` | DbContext doesn't inherit `IdentityDbContext` | Change to `IdentityDbContext<ApplicationUser, ApplicationRole, string>` |
+| User not authenticated after login | Cookie middleware missing or wrong order | Ensure `UseAuthentication()` is called; check middleware order |
+| Role authorization not working | Cookie is stale (doesn't have updated role claims) | Sign out and sign in again to refresh the cookie |
+| Email confirmation token invalid | Token expired, already used, or security stamp changed | Check `TokenLifespan`, generate a new token, ensure security stamp hasn't changed |
+| `"Cannot resolve scoped service from root provider"` | Injecting a scoped service (like `UserManager`) into a singleton | Create a scope: `using var scope = serviceProvider.CreateScope();` |
+| Lockout not working | `lockoutOnFailure: false` in `PasswordSignInAsync` | Set to `true`; verify `LockoutEnabled` is true on the user |
 
 ### Debugging Tips
 
-Enable detailed error messages in development:
-
 ```csharp
+// Enable detailed errors in development
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseDatabaseErrorPage(); // For EF Core errors
+    app.UseDatabaseErrorPage();
 }
-```
 
-Add logging to track authentication events:
-
-```csharp
-builder.Services.Configure<SecurityStampValidatorOptions>(options =>
-{
-    options.OnRefreshingPrincipal = (context) =>
-    {
-        var logger = context.HttpContext.RequestServices
-            .GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Security stamp validation for user: {UserId}",
-            context.NewPrincipal?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        return Task.CompletedTask;
-    };
-});
-```
-
-Use middleware to log authentication events:
-
-```csharp
+// Log authentication events
 app.Use(async (context, next) =>
 {
-    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-    
-    logger.LogInformation("Request: {Path} User: {User} Authenticated: {IsAuth}",
+    var logger = context.RequestServices
+        .GetRequiredService<ILogger<Program>>();
+
+    logger.LogInformation(
+        "Request: {Path} | User: {User} | Auth: {IsAuth}",
         context.Request.Path,
         context.User?.Identity?.Name ?? "Anonymous",
         context.User?.Identity?.IsAuthenticated ?? false);
 
     await next();
 
-    logger.LogInformation("Response: {StatusCode}", context.Response.StatusCode);
+    logger.LogInformation(
+        "Response: {StatusCode}",
+        context.Response.StatusCode);
 });
 ```
 
----
+### Why This Matters
 
-## Summary
-
-This comprehensive guide has covered ASP.NET Core Identity from fundamentals to advanced implementation:
-
-- **Core Concepts**: Understanding Identity architecture, users, roles, claims, and the managers that orchestrate them
-- **Setup and Configuration**: Installing packages, configuring services, and setting up database persistence
-- **User Management**: Registration, authentication, profile management, and administrative operations
-- **Role-Based Access Control**: Creating roles, assigning users to roles, and implementing RBAC
-- **Claims and Policies**: Fine-grained authorization using claims and custom policy requirements
-- **Security Features**: Password validation, account lockout, two-factor authentication, and external providers
-- **Customization**: Extending Identity entities, implementing custom stores and managers
-- **Best Practices**: Security configuration, audit logging, and production deployment
-
-By mastering these concepts, you can implement robust, secure authentication and authorization for any .NET application. Identity provides a solid foundation that handles the complexities of authentication, allowing you to focus on your application's unique requirements while following industry best practices.
+What works in development often isn't secure enough for production. This video closes the series by covering the hardening steps: secure cookies, strong password policies, audit logging for security events, and a practical troubleshooting guide for the errors every Identity developer encounters.
 
 ---
 
-*Created for educational purposes. Made With Love ❤️*
+## Series Summary
+
+| Video | Topic | Key Takeaway |
+|-------|-------|-------------|
+| 01 | What is Identity | Understand the problem Identity solves before writing code |
+| 02 | Architecture | Users, roles, claims, managers, stores — how they connect |
+| 03 | Project setup | Templates, packages, project structure, first run |
+| 04 | Configuration | `AddIdentity`, password/lockout/sign-in options, cookies, middleware order |
+| 05 | Models | Every IdentityUser property, custom user/role classes, key types |
+| 06 | Database | IdentityDbContext, connection strings, migrations, schema overview |
+| 07 | Registration | Complete flow: validation, create, role assign, email confirmation |
+| 08 | Login | SignInManager, cookie creation, lockout, 2FA redirect, all result types |
+| 09 | Role management | Create, update, delete roles, assign/remove users, role claims |
+| 10 | RBAC | `[Authorize(Roles)]`, AND/OR semantics, programmatic checks, permission system |
+| 11 | Claims | Add/remove claims, claim policies, reading claims in code and views |
+| 12 | Policies | Custom requirements, handlers, resource-based authorization |
+| 13 | Passwords | Built-in options, custom validator, strength meter |
+| 14 | Lockout & stamp | Lockout config, manual lock/unlock, security stamp invalidation |
+| 15 | 2FA | TOTP, QR codes, login with 2FA, recovery codes, disable |
+| 16 | External login | Google/Facebook/Microsoft, callbacks, linking accounts |
+| 17 | Tokens | How tokens work, lifetimes, custom token providers |
+| 18 | Customization | Custom stores, custom SignInManager, advanced extensions |
+| 19 | Production | Secure config, audit logging, troubleshooting common errors |
+
+---
+
+*built for the YouTube channel — copy code directly into your demo project, record each section as a video, and update this README as the series grows.*
