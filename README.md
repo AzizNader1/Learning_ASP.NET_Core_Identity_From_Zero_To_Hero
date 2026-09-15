@@ -1,3 +1,6423 @@
+# ASP.NET Core Identity API — Zero to Hero
+
+> **Single resource for YouTube playlist creation + study + review**
+>
+> This file covers Videos 01 through 09 of the 19-video playlist. Each video follows the same structure: **Theory & Definitions → 🎬 Recording Notes → Complete Implementation (every line commented) → Postman / Swagger Tests**. All code targets `[ApiController]` + JSON + JWT — no MVC, no views, no `View()`. Designed for API-first projects using `AddIdentityCore` and manual JWT token generation.
+
+---
+
+## Table of Contents
+
+| Video | Title | Section |
+|-------|-------|---------|
+| 01 | What Is ASP.NET Core Identity — and Why Use It in an API? | [Concept](#video-01--what-is-aspnet-core-identity--and-why-use-it-in-an-api) |
+| 02 | Identity Architecture — Users, Roles, Claims, Managers, Stores | [Architecture](#video-02--identity-architecture--users-roles-claims-managers-stores) |
+| 03 | Creating the API Project & Installing Packages | [Project Setup](#video-03--creating-the-api-project--installing-packages) |
+| 04 | Configuring Identity Services in Program.cs (API + JWT) | [Program.cs](#video-04--configuring-identity-services-in-programcs-api--jwt) |
+| 05 | The Identity Models — IdentityUser, IdentityRole, Custom Classes | [Models](#video-05--the-identity-models--identityuser-identityrole-custom-classes) |
+| 06 | Database Setup — IdentityDbContext, Connection Strings, Migrations | [DB & Migrations](#video-06--database-setup--identitydbcontext-connection-strings-migrations) |
+| 07 | User Registration API — Complete Endpoint | [Registration](#video-07--user-registration-api--complete-endpoint) |
+| 08 | Login API — JWT Token Issuance | [Login](#video-08--login-api--jwt-token-issuance) |
+| 09 | Role Management API — CRUD Roles, Assign / Remove Users | [Roles](#video-09--role-management-api--crud-roles-assign--remove-users) |
+
+---
+
+## How to Use This File
+
+1. **For YouTube creation:** Each video section has 🎬 Recording Notes with opening hooks, analogies, "say this" phrases, and common viewer questions. Use these to script your videos.
+2. **For study:** The Theory & Definitions sections explain what each concept means, when to use it, and how it works under the hood.
+3. **For implementation:** The Complete Implementation sections provide full, copy-paste-ready code with every line commented.
+4. **For testing:** The Postman / Swagger Tests sections provide request bodies, expected responses, and what each response means.
+5. **For future reference:** This is a single document. Search for the video number and find the complete reference.
+
+**File location:** `C:\Users\azizn\Learning_ASP.NET_Core_Identity_From_Zero_To_Hero\README_Videos_01_to_09.md`
+
+---
+
+## Comparison — Why This Version Is the "Absolute Perfect" README
+
+This file merges two approaches into one:
+
+| | **Previous approach (code-only)** | **Latest approach (theory-only)** | **This merged file** |
+|---|---|---|---|
+| What it had | Full code for every step, line-by-line comments | Concepts, definitions, when-to-use/not-use, 🎬 recording mini-scripts | **Both: theory + code + 🎬 notes + tests in every section** |
+| Depth per section | Implementation depth only | Conceptual depth only | **Equal spirit: concept explained, then code shown, then tested** |
+| Usable for video | Yes — copy-paste code | Partially — good script material | **Yes — script from 🎬 notes, show code, test with Postman** |
+| Usable for study | Yes — read code | Yes — read theory | **Yes — read theory to understand, code to implement** |
+| Usable for review | Yes — check implementation | No — no code | **Yes — everything in one place** |
+
+The goal was a single resource that is equally good for: scripting a YouTube video, studying the concepts, implementing the code, and testing the result. This merged version delivers all four.
+
+---
+
+# Video 01 — What Is ASP.NET Core Identity — and Why Use It in an API?
+
+## Theory & Definitions
+
+### What Is ASP.NET Core Identity?
+
+ASP.NET Core Identity is a membership system that adds login, registration, role management, claims, and security features to an ASP.NET Core application. It is built on top of Entity Framework Core and provides a complete user management framework out of the box.
+
+In simple terms: Identity handles **who the user is** (authentication) and **what they are allowed to do** (authorization) — the two things every application needs.
+
+### The Core Concepts
+
+- **User** — A person or entity that interacts with your application. In Identity, a user is represented by `IdentityUser` (or a custom subclass). A user has a username, password hash, email, phone number, security stamp, and a collection of claims, roles, and logins.
+
+- **Role** — A named group that represents a set of permissions. Examples: "Admin", "User", "Moderator". Roles simplify authorization — you check `User.IsInRole("Admin")` instead of checking individual permissions.
+
+- **Claim** — A name-value pair that describes something about the user. Examples: `name: "Ahmad"`, `role: "Admin"`, `email: "ahmad@example.com"`, `department: "Engineering"`. Claims are more granular than roles — you can attach any piece of information to a user and use it for authorization decisions.
+
+- **Principal** — The `ClaimsPrincipal` that represents the currently authenticated user in the HTTP context. It is built from the user's claims and roles. Every request has a `HttpContext.User` that is a `ClaimsPrincipal`.
+
+- **Authentication** — The process of verifying who the user is. In an API, this typically means: the client sends credentials (username + password, or a JWT token), and the server validates them and returns a token or sets a session.
+
+- **Authorization** — The process of deciding what the authenticated user is allowed to do. This uses roles, claims, or policies to gate access to resources.
+
+### How Identity Works Under the Hood
+
+Identity sits in your application's dependency injection container as a set of services:
+
+```
+Your API Controller
+        ↓
+   UserManager<TUser>    ← manages user CRUD (create, find, update, delete)
+   SignInManager<TUser>  ← manages sign-in, sign-out, 2FA, security stamps
+   RoleManager<TRole>    ← manages role CRUD
+        ↓
+   IUserStore<TUser>     ← persistence abstraction (EF Core by default)
+   IRoleStore<TRole>     ← persistence abstraction for roles
+        ↓
+   IdentityDbContext     ← EF Core DbContext that maps to your database
+        ↓
+   SQL Server / PostgreSQL / SQLite / etc.
+```
+
+- **UserManager** handles user operations: `CreateAsync`, `FindByEmailAsync`, `UpdateAsync`, `DeleteAsync`, `AddToRoleAsync`, `RemoveFromRoleAsync`, `GeneratePasswordResetTokenAsync`, etc.
+- **SignInManager** handles sign-in operations: `SignInAsync`, `CheckPasswordSignInAsync`, `TwoFactorSignInAsync`, `RefreshSignInAsync`, etc.
+- **RoleManager** handles role operations: `CreateAsync`, `FindByNameAsync`, `DeleteAsync`, etc.
+- **Stores** are the persistence layer — by default `UserStore` and `RoleStore` backed by EF Core and your `IdentityDbContext`.
+
+### When to Use ASP.NET Core Identity
+
+| Scenario | Use Identity | Don't Use Identity |
+|----------|-------------|-------------------|
+| You need user registration, login, roles, claims | ✅ Yes — full membership system | — |
+| You need JWT bearer authentication for an API | ✅ Yes — does not force cookies | — |
+| You need multi-factor authentication (2FA) | ✅ Yes — built-in TOTP + recovery codes | — |
+| You need external login (Google, Facebook, etc.) | ✅ Yes — external authentication built in | — |
+| You need a custom user table with non-standard columns | ✅ Yes — subclass IdentityUser and add properties | — |
+| You need simple username/password with no roles/claims | ⚠️ Overkill — consider a simpler auth system | ✅ Use a lightweight middleware |
+| You are building a public API for mobile/SPA clients | ✅ Yes — Identity + JWT works well | — |
+| You need Windows/Active Directory auth only | ⚠️ Partial — Windows auth is separate | ✅ Use Windows Authentication middleware |
+| You need OAuth server (issue tokens for other apps) | ⚠️ Partial — Identity is a membership system, not an OAuth server | ✅ Use IdentityServer / Duende / Azure AD B2C |
+
+### Why Identity in an API — Not Just MVC?
+
+Historically, Identity was designed with MVC/Razor Pages in mind — it ships with cookie-based authentication, sign-in managers that set cookies, and redirect-based flows. In an API, you don't want cookies or redirects — you want:
+
+1. **JWT bearer tokens** — the client sends a token in the Authorization header on every request.
+2. **JSON responses** — the API returns JSON, not HTML views or redirects.
+3. **Stateless authentication** — the server doesn't store session state; the token carries the identity.
+
+Identity works perfectly in an API when you:
+- Use `AddIdentityCore<TUser>` instead of `AddIdentity` (lighter, no default cookie handlers).
+- Configure JWT Bearer authentication (`AddJwtBearer`).
+- Manually generate JWT tokens after successful login (using the `SignInResult` from `CheckPasswordSignInAsync`).
+- Use `[ApiController]` with `[Route("api/[controller]")]` — no views, no `View()`, all JSON.
+
+### The "Zero to Hero" Journey — What We Cover
+
+This tutorial takes you from zero knowledge of ASP.NET Core Identity to mastery, in order:
+
+| Phase | Videos | What You Learn |
+|-------|--------|---------------|
+| **Concept** | 01 | What Identity is, its core concepts, when to use it |
+| **Architecture** | 02 | Users, Roles, Claims, Managers, Stores — how they connect |
+| **Setup** | 03–04 | Project creation, package installation, Program.cs configuration, JWT |
+| **Data** | 05–06 | Models (IdentityUser, IdentityRole), DbContext, migrations, database |
+| **Core APIs** | 07–09 | Registration, Login + JWT, Role CRUD and assignment |
+| **Authorization** | 10–12 | RBAC, Claims-based auth, Policies |
+| **Security** | 13–15 | Passwords, lockout, 2FA |
+| **Advanced** | 16–18 | External logins, token providers, customization |
+| **Production** | 19 | Best practices, audit logging, troubleshooting |
+
+Each video builds on the previous one. You don't need to skip ahead — the content is sequential and cumulative.
+
+### Key Distinction: Identity vs. Authentication vs. Authorization
+
+- **Identity** = the membership system (users, roles, claims, stores, managers). It is the framework that manages user data and security primitives.
+- **Authentication** = verifying who the user is. In our API: username + password → JWT token.
+- **Authorization** = deciding what the user can do. In our API: `[Authorize(Roles="Admin")]`, policies, claims-based checks.
+
+Identity provides the building blocks. You wire authentication (JWT) and authorization (roles/claims/policies) on top of it.
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "If you've ever built an application that needs users to register, log in, and have different permission levels — you've run into the same problem: authentication and authorization are hard to build from scratch. Today we're going to learn ASP.NET Core Identity — Microsoft's membership system that handles all of this for you. We'll focus on APIs specifically — no MVC, no Razor Pages, no cookies. Just JSON, JWT tokens, and clean endpoints. By the end of this playlist, you'll go from zero to mastery — every concept, every line of code, every Postman test."
+
+**What to show on screen:**
+
+> Show the overall architecture diagram (Users → UserManager → UserStore → Database). Show a simple sketch of how a request flows: client sends credentials → API validates → returns JWT → client includes JWT in future requests → API reads claims from JWT → authorizes.
+
+**Key points to emphasize (say this):**
+
+> "Identity is not just 'login and registration'. It's a full membership system — users, roles, claims, security stamps, 2FA, external logins, password reset, email confirmation. It's the foundation that everything else builds on."
+
+> "In an API, we use Identity differently than in MVC. We don't use cookies or redirects. We use JWT bearer tokens and JSON responses. The membership system is the same — the authentication layer is different."
+
+> "This playlist is sequential. Video 1 is the concept. Every video after builds on it. Don't skip ahead — each piece depends on the one before."
+
+**Analogy (say this):**
+
+> "Think of Identity like a building's security system. The users are the people who live or work in the building. The roles are their access levels — 'resident', 'employee', 'maintenance'. The claims are their ID badges with specific permissions — 'can access floor 3', 'has parking pass'. The UserManager is the front desk that registers new people and issues badges. The SignInManager is the security guard who checks IDs at the door. The database is the records room where everything is stored. And the JWT token is the temporary badge you get when you sign in — it proves who you are for the next few hours."
+
+**Common viewer questions to address:**
+
+> "Do I need Identity if I'm building a simple API?" — If you need any user management (registration, login, roles, claims), yes. If you just need a single admin account hardcoded in config, no — but that doesn't scale.
+
+> "Is Identity secure?" — Yes, it's battle-tested and used by millions of applications. It hashes passwords with PBKDF2, supports account lockout, security stamps, 2FA, and more. Security is a layer cake — Identity gives you the layers; you configure them correctly.
+
+> "Can I use Identity with a frontend framework like React or Angular?" — Yes — that's actually the most common use case. Your React/Angular app is the client, your ASP.NET Core API is the server, and Identity + JWT connects them. The API never sees the frontend framework — it just receives HTTP requests with JWT tokens.
+
+**What to show:**
+
+- A simple diagram of the Identity architecture (drawn on a whiteboard or in a slide)
+- The NuGet packages we'll install (listed on screen)
+- A quick demo of what the final API will do (register, login, get JWT, call protected endpoint)
+
+**What to skip:**
+
+- Deep dive into the Identity source code (too detailed for Video 1)
+- Comparison with IdentityServer / Duende / Azure AD (different topic — OAuth server vs. membership system)
+- Cookie-based Identity in MVC (not relevant to our API focus)
+
+---
+
+## Complete Implementation
+
+For Video 1, there is no code to write yet — this is the concept video. But here are the key things to reference for later videos:
+
+### What We Will Build (the complete API)
+
+By the end of the playlist, you will have an ASP.NET Core API with these endpoints:
+
+```
+POST   /api/accounts/register          → Register a new user
+POST   /api/accounts/login             → Login, receive JWT
+POST   /api/accounts/logout            → Logout (invalidate token / cleanup)
+GET    /api/accounts/me                → Get current user profile
+PUT    /api/accounts/me                → Update current user profile
+POST   /api/accounts/forgot-password   → Trigger password reset email
+POST   /api/accounts/reset-password    → Reset password with token
+POST   /api/accounts/confirm-email     → Confirm email with token
+
+GET    /api/roles                      → List all roles
+POST   /api/roles                      → Create a role
+PUT    /api/roles/{id}                 → Update a role
+DELETE /api/roles/{id}                 → Delete a role
+POST   /api/users/{userId}/roles      → Assign role(s) to a user
+DELETE /api/users/{userId}/roles/{roleName} → Remove role from user
+GET    /api/users/{userId}/roles      → Get user's roles
+
+GET    /api/admin/users                → List all users (Admin only)
+GET    /api/admin/users/{id}           → Get user by ID (Admin only)
+PUT    /api/admin/users/{id}           → Update user (Admin only)
+DELETE /api/admin/users/{id}           → Delete user (Admin only)
+
+GET    /api/protected                  → Protected endpoint — any authenticated user
+GET    /api/admin                      → Admin-only endpoint
+GET    /api/management                 → Requires "Management" policy
+```
+
+All endpoints return JSON. All errors follow a consistent format. JWT is the authentication mechanism.
+
+### The Project Structure We Build
+
+```
+IdentityApiTutorial/
+├── Controllers/
+│   ├── AccountsController.cs       ← Register, Login, Profile, Password reset
+│   ├── RolesController.cs         ← Role CRUD
+│   ├── UsersController.cs         ← User-role assignment
+│   ├── AdminController.cs         ← Admin-only user management
+│   └── ProtectedController.cs     ← Protected / admin / policy endpoints
+├── DTOs/
+│   ├── RegisterRequest.cs
+│   ├── LoginRequest.cs
+│   ├── LoginResponse.cs
+│   ├── UserResponse.cs
+│   ├── RoleRequest.cs
+│   ├── RoleResponse.cs
+│   └── ...
+├── Models/
+│   ├── ApplicationUser.cs         ← Custom IdentityUser subclass
+│   ├── ApplicationRole.cs         ← Custom IdentityRole subclass
+│   └── ...
+├── Data/
+│   └── IdentityDbContext.cs       ← EF Core DbContext for Identity
+├── Services/
+│   ├── JwtService.cs              ← Manual JWT token generation
+│   ├── PasswordStrengthService.cs ← Password strength calculation
+│   └── ...
+├── Program.cs                     ← Identity + JWT configuration
+├── appsettings.json               ← Connection string, JWT settings
+└── IdentityApiTutorial.csproj     ← Project file with NuGet packages
+```
+
+### The NuGet Packages We Install
+
+```
+Microsoft.AspNetCore.Identity.EntityFrameworkCore
+Microsoft.EntityFrameworkCore.SqlServer          (or Sqlite / Postgres)
+Microsoft.EntityFrameworkCore.Tools              (for migrations)
+Microsoft.EntityFrameworkCore.Design
+System.IdentityModel.Tokens.Jwt                  (JWT handling)
+Microsoft.AspNetCore.Authentication.JwtBearer   (JWT Bearer auth middleware)
+```
+
+---
+
+## Postman / Swagger Tests
+
+No testable endpoints yet — this is the concept video. But here is how you will use Postman throughout the playlist:
+
+### Postman Setup (do this once)
+
+1. **Create a collection** called "ASP.NET Core Identity API"
+2. **Create an environment** with variables:
+   - `baseUrl` = `https://localhost:7001` (or your API's URL)
+   - `jwtToken` = (empty — filled after login)
+   - `userId` = (empty — filled after registration)
+3. **Set up the Authorization tab** on the collection:
+   - Type: Bearer Token
+   - Token: `{{jwtToken}}`
+   - This automatically adds `Authorization: Bearer <token>` to every request
+
+### Test Flow (throughout the playlist)
+
+Every endpoint test follows this pattern:
+
+1. **Register** a user → get user ID → save to `{{userId}}`
+2. **Login** with that user → get JWT → save to `{{jwtToken}}`
+3. **Call protected endpoints** with `{{jwtToken}}` in the Authorization header
+4. **Verify** the response matches the expected JSON structure
+
+### Response Format
+
+All successful responses return JSON with a consistent shape:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": null
+}
+```
+
+All error responses return JSON with:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Error description here",
+  "errors": {
+    "PropertyName": ["Error 1", "Error 2"]
+  }
+}
+```
+
+This is a custom wrapper — not the default ASP.NET Core problem details. You'll see it implemented in Video 07.
+
+---
+
+# Video 02 — Identity Architecture — Users, Roles, Claims, Managers, Stores
+
+## Theory & Definitions
+
+### The Five Pillars of Identity Architecture
+
+Identity architecture is built on five interconnected pieces:
+
+1. **User** (`IdentityUser` / your subclass) — the entity that represents a person in the system.
+2. **Role** (`IdentityRole` / your subclass) — a named group for authorization scoping.
+3. **Claim** (name-value pair) — a granular piece of information about the user.
+4. **Manager** (`UserManager`, `SignInManager`, `RoleManager`) — the service layer that performs operations.
+5. **Store** (`IUserStore`, `IRoleStore`) — the persistence abstraction that talks to the database.
+
+### User — IdentityUser and Your Custom Subclass
+
+`IdentityUser` is the default user class. It has these key properties:
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `Id` | `string` | Primary key (GUID string) |
+| `UserName` | `string` | Unique login name |
+| `NormalizedUserName` | `string` | Uppercase version for case-insensitive lookups |
+| `Email` | `string` | User's email address |
+| `NormalizedEmail` | `string` | Uppercase version for case-insensitive lookups |
+| `EmailConfirmed` | `bool` | Whether the email has been verified |
+| `PasswordHash` | `string` | Hashed password (never plaintext) |
+| `SecurityStamp` | `string` | Random value that changes when credentials change |
+| `ConcurrencyStamp` | `string` | Optimistic concurrency token |
+| `PhoneNumber` | `string` | User's phone number |
+| `PhoneNumberConfirmed` | `bool` | Whether phone is verified |
+| `TwoFactorEnabled` | `bool` | Whether 2FA is enabled |
+| `LockoutEnabled` | `bool` | Whether lockout is enabled for this user |
+| `LockoutEnd` | `DateTimeOffset?` | When lockout expires (null = not locked out) |
+| `AccessFailedCount` | `int` | Failed login attempts (triggers lockout) |
+| `Claims` | `ICollection<IdentityUserClaim>` | Navigation to user's claims |
+| `Roles` | `ICollection<IdentityUserRole>` | Navigation to user's roles |
+| `Logins` | `ICollection<IdentityUserLogin>` | Navigation to external logins |
+| `Tokens` | `ICollection<IdentityUserToken>` | Navigation to tokens (reset, confirm, etc.) |
+
+**Custom subclass pattern:**
+
+```csharp
+public class ApplicationUser : IdentityUser
+{
+    // Add custom properties here
+    public string? FullName { get; set; }
+    public string? Department { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+}
+```
+
+You subclass `IdentityUser` when you need extra columns in the Users table. Identity's EF Core mapping picks up your subclass automatically — the extra properties become extra columns.
+
+**When to subclass vs. use a profile / claims:**
+
+| Need | Approach |
+|------|----------|
+| Extra columns on the Users table (FullName, Department, etc.) | Subclass `IdentityUser` |
+| Data that varies per user and is queried separately (posts, orders, profile images) | Separate table, link by `UserId` |
+| Permissions, roles, "what the user can do" | Claims and Roles (not custom columns) |
+| Sensitive data (SSN, etc.) | Separate secured table — NOT on the IdentityUser |
+
+### Role — IdentityRole and Your Custom Subclass
+
+`IdentityRole` is the default role class:
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `Id` | `string` | Primary key |
+| `Name` | `string` | Human-readable role name ("Admin", "User") |
+| `NormalizedName` | `string` | Uppercase version for lookups |
+| `ConcurrencyStamp` | `string` | Optimistic concurrency |
+| `Claims` | `ICollection<IdentityRoleClaim>` | Role-level claims (claims granted to everyone with this role) |
+
+**Custom subclass pattern:**
+
+```csharp
+public class ApplicationRole : IdentityRole
+{
+    public string? Description { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}
+```
+
+Roles are simple — they're just named groups. What makes them powerful is how you use them in authorization: `[Authorize(Roles="Admin")]`, policy-based checks, and claims extracted from roles.
+
+### Claim — What It Is and How It Works
+
+A **claim** is a `System.Security.Claims.Claim` — a name-value pair:
+
+```csharp
+var claim = new Claim("department", "Engineering");
+var claim = new Claim(ClaimTypes.Role, "Admin");
+var claim = new Claim("permission", "can_edit_posts");
+```
+
+Claims are:
+- **Attached to a user** — stored in the `AspNetUserClaims` table (via `UserManager.AddClaimAsync`).
+- **Attached to a role** — stored in the `AspNetRoleClaims` table (via `RoleManager.AddClaimAsync`). Anyone with that role gets the claim.
+- **Serialized into the JWT token** — when you generate a JWT, you include the user's claims as JWT claims. The client sends the JWT back, and the API reads the claims from it.
+
+**Claim types:**
+
+- `ClaimTypes.Name` — the user's name
+- `ClaimTypes.Role` — a role (e.g., "Admin")
+- `ClaimTypes.Email` — the user's email
+- `ClaimTypes.NameIdentifier` — the user's ID (this is what Identity uses by default for the `sub` claim in JWT)
+- Custom types — any string you want ("department", "permission", "scope")
+
+**Claims vs. Roles — when to use which:**
+
+| Situation | Use Role | Use Claim |
+|-----------|----------|-----------|
+| Group-based access ("Admins can do X") | ✅ Role | — |
+| Fine-grained permission ("user can edit their own posts but not others") | — | ✅ Claim (e.g., "can_edit_own_posts") |
+| User attribute used for display or logic ("department = Engineering") | — | ✅ Claim |
+| Permission that applies to everyone with a role | Role claim (add claim to role, not user) | ✅ Add claim to `RoleManager` |
+| Dynamic permission that changes at runtime | — | ✅ Add/remove claim from user |
+
+**Key insight:** Roles are a shortcut for groups of claims. When you call `[Authorize(Roles="Admin")]`, what actually happens is: the system checks if the user has a claim of type `ClaimTypes.Role` with value "Admin". Roles *are* claims — they're just a special kind.
+
+### UserManager — What It Does
+
+`UserManager<TUser>` is the primary service for user operations:
+
+| Method | What It Does |
+|--------|-------------|
+| `CreateAsync(user, password)` | Creates a new user with hashed password |
+| `FindByIdAsync(id)` | Finds a user by ID |
+| `FindByNameAsync(name)` | Finds a user by UserName |
+| `FindByEmailAsync(email)` | Finds a user by Email |
+| `UpdateAsync(user)` | Updates user properties (not password) |
+| `DeleteAsync(user)` | Deletes the user |
+| `ChangePasswordAsync(user, oldPwd, newPwd)` | Changes password (requires old password) |
+| `ResetPasswordAsync(user, token, newPwd)` | Resets password with a token |
+| `AddPasswordAsync(user, password)` | Adds a new password (for users with passwordless login) |
+| `RemovePasswordAsync(user)` | Removes password |
+| `GetPasswordHashAsync(user)` | Gets the hashed password |
+| `AddClaimAsync(user, claim)` | Adds a claim to the user |
+| `RemoveClaimAsync(user, claim)` | Removes a claim |
+| `GetClaimsAsync(user)` | Gets all user claims |
+| `AddToRoleAsync(user, roleName)` | Adds user to a role |
+| `RemoveFromRoleAsync(user, roleName)` | Removes user from a role |
+| `GetRolesAsync(user)` | Gets user's roles |
+| `IsInRoleAsync(user, roleName)` | Checks if user is in a role |
+| `GenerateEmailConfirmationTokenAsync(user)` | Generates an email confirmation token |
+| `GeneratePasswordResetTokenAsync(user)` | Generates a password reset token |
+| `ConfirmEmailAsync(user, token)` | Confirms email with token |
+| `VerifyUserTokenAsync(user, tokenProvider, purpose, token)` | Verifies a token |
+| `GetLockoutEnabledAsync(user)` | Checks if lockout is enabled |
+| `SetLockoutEnabledAsync(user, enabled)` | Sets lockout enabled flag |
+| `GetLockoutEndDateAsync(user)` | Gets lockout end date |
+| `SetLockoutEndDateAsync(user, date)` | Sets lockout end date |
+| `AccessFailedAsync(user)` | Increments failed access count |
+| `ResetAccessFailedCountAsync(user)` | Resets failed access count |
+| `GetTwoFactorEnabledAsync(user)` | Checks if 2FA is enabled |
+| `SetTwoFactorEnabledAsync(user, enabled)` | Sets 2FA flag |
+
+Every method returns `Task<IdentityResult>` (or `Task<T>` for queries). `IdentityResult` tells you if the operation succeeded or failed, with a list of `IdentityError` objects on failure.
+
+### SignInManager — What It Does
+
+`SignInManager<TUser>` handles sign-in flows:
+
+| Method | What It Does |
+|--------|-------------|
+| `SignInAsync(user, isPersistent, authenticationMethod)` | Signs the user in (creates a cookie by default in MVC; in API, you use this to get the SignInResult and then issue a JWT) |
+| `CheckPasswordSignInAsync(user, password, lockoutOnFailure)` | Checks password without signing in — returns `SignInResult` (Succeeded, IsLockedOut, IsNotAllowed, Failed) |
+| `TwoFactorSignInAsync(provider, token, lockoutOnFailure, rememberMe)` | Signs in with 2FA token |
+| `TwoFactorVerifyTokenAsync(user, provider)` | Verifies a 2FA token |
+| `GetTwoFactorAuthenticationPageAsync()` | Returns the 2FA page model (MVC only) |
+| `EnableTwoFactorAuthenticationAsync()` | Enables 2FA |
+| `DisableTwoFactorAuthenticationAsync()` | Disables 2FA |
+| `HasTwoFactorTokenAsync(user, provider)` | Checks if a 2FA token exists |
+| `GenerateAuthenticationTokenAsync(user, tokenProvider, purpose)` | Generates a token for a purpose |
+| `GetRecoveryCodesAsync(user)` | Gets 2FA recovery codes |
+| `ConsumeRecoveryCodeAsync(user, code)` | Consumes a recovery code |
+| `UnlockPerUserLockoutAsync(user)` | Unlocks a user (per-user lockout) |
+| `IsLockedOutAsync(user)` | Checks if user is locked out |
+| `RefreshSignInAsync(user)` | Refreshes the sign-in (updates security stamp, etc.) |
+| `GetExternalLoginInfoAsync()` | Gets external login info (from OAuth provider) |
+
+**Critical for API:** In an API, `SignInManager.SignInAsync` creates a cookie — we don't want that. Instead, we use `SignInManager.CheckPasswordSignInAsync` which returns a `SignInResult` without setting any cookie. We then use the `SignInResult.Succeeded` flag to decide whether to generate a JWT token.
+
+### RoleManager — What It Does
+
+`RoleManager<TRole>` handles role operations:
+
+| Method | What It Does |
+|--------|-------------|
+| `CreateAsync(role)` | Creates a new role |
+| `UpdateAsync(role)` | Updates a role |
+| `DeleteAsync(role)` | Deletes a role |
+| `FindByIdAsync(id)` | Finds role by ID |
+| `FindByNameAsync(name)` | Finds role by name |
+| `RoleExistsAsync(roleName)` | Checks if a role with that name exists |
+| `AddClaimAsync(role, claim)` | Adds a claim to the role |
+| `RemoveClaimAsync(role, claim)` | Removes a claim from the role |
+| `GetClaimsAsync(role)` | Gets role claims |
+
+### Stores — The Persistence Layer
+
+Stores are the abstraction between the managers and the database:
+
+- `IUserStore<TUser>` — persists users (create, update, delete, find, etc.)
+- `IRoleStore<TRole>` — persists roles
+- `IUserClaimStore<TUser>` — persists user claims
+- `IUserRoleStore<TUser>` — persists user-role associations
+- `IUserLoginStore<TUser>` — persists external logins
+- `IUserTokenStore<TUser>` — persists tokens (confirmation, reset, etc.)
+- `IUserPasswordStore<TUser>` — persists password hashes
+
+By default, when you call `.AddEntityFrameworkStores<IdentityDbContext>()`, Identity registers EF Core implementations of all these stores. They map to the Identity tables in your database.
+
+### The Database Schema — What Tables Identity Creates
+
+When you run migrations, Identity creates these tables:
+
+| Table | Purpose |
+|-------|---------|
+| `AspNetUsers` | Users (Id, UserName, Email, PasswordHash, SecurityStamp, etc.) |
+| `AspNetRoles` | Roles (Id, Name, NormalizedName) |
+| `AspNetUserRoles` | User-role mapping (UserId, RoleId) |
+| `AspNetUserClaims` | User claims (Id, UserId, ClaimType, ClaimValue) |
+| `AspNetRoleClaims` | Role claims (Id, RoleId, ClaimType, ClaimValue) |
+| `AspNetUserLogins` | External logins (LoginProvider, ProviderKey, UserId) |
+| `AspNetUserTokens` | Tokens (UserId, LoginProvider, Name, Value) |
+| `AspNetClaimsPrincipal` | (optional, for data protection) |
+
+These table names are conventions — you can customize them in `IdentityDbContext` if needed.
+
+### How the Pieces Fit Together — Request Flow
+
+Here's what happens when a user registers and then logs in:
+
+**Registration flow:**
+
+```
+Client: POST /api/accounts/register { userName, password, email }
+    ↓
+AccountsController.Register()
+    ↓
+UserManager.CreateAsync(user, password)
+    ↓
+  → Password hashed with PBKDF2 (PasswordHasher)
+  → User saved to AspNetUsers table (via IUserStore / EF Core)
+  → IdentityResult returned (Success or errors)
+    ↓
+Controller returns 201 Created with user data (no password hash)
+```
+
+**Login flow:**
+
+```
+Client: POST /api/accounts/login { userName, password }
+    ↓
+AccountsController.Login()
+    ↓
+UserManager.FindByNameAsync(userName)  → finds user
+    ↓
+SignInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true)
+    ↓
+  → Password verified against hash (PasswordHasher)
+  → Lockout checked (AccessFailedCount, LockoutEnd)
+  → SignInResult returned (Succeeded / IsLockedOut / Failed)
+    ↓
+If Succeeded:
+  → JwtService.GenerateJwtToken(user)  → creates JWT with claims
+    ↓
+Controller returns 200 OK with { token, expiresIn, user }
+```
+
+**Protected endpoint flow:**
+
+```
+Client: GET /api/protected  (with Authorization: Bearer <jwt>)
+    ↓
+JwtBearer middleware validates JWT signature + expiration
+    ↓
+HttpContext.User populated with claims from JWT
+    ↓
+ProtectedController.Get()
+    ↓
+[Authorize] / [Authorize(Roles="Admin")] / policy check
+    ↓
+If authorized → return data
+If not → 401 Unauthorized / 403 Forbidden
+```
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "Now that we know WHAT Identity is, let's understand HOW it's built. Identity architecture has five pieces: Users, Roles, Claims, Managers, and Stores. Each piece has a specific job. When you understand how they fit together, everything else in this playlist makes sense — because every feature we build uses these same pieces."
+
+**Show on screen:**
+
+> Draw or show a diagram with five boxes: User, Role, Claim, Manager, Store. Draw arrows showing how they connect. Show the request flow for registration and login (step by step, as described in the Complete Implementation section).
+
+**Key points to emphasize (say this):**
+
+> "UserManager does USER things — create, find, update, delete, add claims, add roles. SignInManager does SIGN-IN things — check password, sign in, 2FA. RoleManager does ROLE things. Don't mix them up — each manager has a specific responsibility."
+
+> "Stores are the database layer. You usually don't touch them directly — the managers use them. But it's important to know they exist, because if you want to customize persistence (use a different database, a non-relational store, or a custom implementation), you implement the store interfaces."
+
+> "Claims are the most important concept to understand. Roles ARE claims. When you authorize with [Authorize(Roles='Admin')], you're checking for a claim. Everything in Identity authorization is claim-based under the hood."
+
+> "The database schema is predictable. AspNetUsers, AspNetRoles, AspNetUserRoles, AspNetUserClaims, AspNetRoleClaims — these are the tables. You'll see them in your database viewer. Knowing the schema helps you debug — you can look at the raw data when something goes wrong."
+
+**Analogy (say this):**
+
+> "The architecture is like a company. The Users are the employees. The Roles are departments — 'Engineering', 'Sales', 'HR'. The Claims are the specific permissions each employee has — 'can approve expenses', 'can access the server room'. The Managers are the department heads — UserManager handles all employee operations, RoleManager handles department creation, SignInManager handles building entry. The Stores are the filing cabinets and databases where everything is recorded. And the JWT token is the employee badge — it proves who you are and what you're allowed to do, without the security guard needing to check the database every time."
+
+**Common viewer questions:**
+
+> "Do I need all five pieces?" — You need Users, UserManager, and a Store at minimum. Roles and RoleManager are optional but recommended for any application with different permission levels. Claims are always there (Identity uses them internally). You don't need to use all features — but understanding all five helps you make good decisions.
+
+> "Can I use a database other than SQL Server?" — Yes. Identity works with any EF Core-supported database: PostgreSQL, MySQL, SQLite, Oracle, etc. You just change the connection string and the EF Core provider package.
+
+> "What's the difference between UserManager and SignInManager?" — UserManager does data operations on users (CRUD, claims, roles, tokens). SignInManager does authentication operations (sign-in, sign-out, 2FA, external login). In our API, we mostly use UserManager for everything and only use SignInManager.CheckPasswordSignInAsync to verify passwords.
+
+**What to show:**
+
+- The five-box architecture diagram
+- The request flow diagrams (registration, login, protected endpoint)
+- The table list (AspNetUsers, etc.) — show them in SQL Server Management Studio or a database viewer
+- A quick code snippet showing UserManager, SignInManager, RoleManager being injected into a controller
+
+**What to skip:**
+
+- Deep dive into how EF Core stores work internally (too detailed)
+- Custom store implementation (covered in Video 18)
+- Data protection and key rings (advanced topic)
+
+---
+
+## Complete Implementation
+
+### The Five Managers — How to Inject Them
+
+In Video 04 we configure Identity in Program.cs. Once configured, you can inject the managers into any controller or service:
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Controllers/AccountsController.cs (partial — showing DI)
+// Video 02 — Identity architecture: managers and stores
+// ─────────────────────────────────────────────────────────────────────────────
+// This shows how the managers are injected into a controller.
+// The managers are registered by AddIdentityCore in Program.cs.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+namespace IdentityApiTutorial.Controllers
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [ApiController] — tells ASP.NET Core this is an API controller.
+    //   → Automatic model validation (400 on invalid model)
+    //   → Binding source inference ([FromBody], [FromQuery], etc.)
+    //   → Problem details for errors (consistent JSON error format)
+    // ─────────────────────────────────────────────────────────────────────────────
+    [ApiController]
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [Route("api/[controller]")] — sets the URL prefix.
+    //   → [controller] resolves to "Accounts" (from AccountsController)
+    //   → Full route: POST /api/accounts/register, POST /api/accounts/login
+    // ─────────────────────────────────────────────────────────────────────────────
+    [Route("api/[controller]")]
+    public class AccountsController : ControllerBase
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // _userManager — the primary service for user operations.
+        //   → Create, find, update, delete users
+        //   → Add/remove claims, add/remove roles
+        //   → Generate tokens (email confirm, password reset)
+        //   → All methods return Task<IdentityResult> (or Task<T>)
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // _signInManager — handles sign-in operations.
+        //   → In our API: we use CheckPasswordSignInAsync (returns SignInResult
+        //     without creating a cookie).
+        //   → We do NOT use SignInAsync (that creates a cookie — MVC behavior).
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly SignInManager<ApplicationUser> _signInManager;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // _roleManager — handles role operations.
+        //   → Create, find, update, delete roles
+        //   → Add/remove role claims
+        //   → Check if role exists
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly RoleManager<ApplicationRole> _roleManager;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // _jwtService — our custom service for generating JWT tokens.
+        //   → Not part of Identity — we write this ourselves.
+        //   → Takes a user, builds a JWT with claims, signs it, returns the token.
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly JwtService _jwtService;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Constructor — ASP.NET Core DI injects all dependencies.
+        //   → UserManager, SignInManager, RoleManager come from Identity configuration.
+        //   → JwtService is our custom service (registered in Program.cs).
+        // ─────────────────────────────────────────────────────────────────────────
+        public AccountsController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            RoleManager<ApplicationRole> roleManager,
+            JwtService jwtService)
+        {
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _roleManager = roleManager;
+            _jwtService = jwtService;
+        }
+
+        // ... register, login, and other endpoints go here
+        // (implemented in Videos 07, 08, 09)
+    }
+}
+```
+
+### IdentityUser Subclass — ApplicationUser
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Models/ApplicationUser.cs
+// Video 02 — Identity architecture: custom user class
+// ─────────────────────────────────────────────────────────────────────────────
+// Subclass IdentityUser to add custom properties.
+// These become extra columns in the AspNetUsers table.
+//
+// When to subclass:
+//   → Add columns that are ALWAYS needed for every user (FullName, Department)
+//   → Keep it lean — don't put everything here. Large data belongs in separate tables.
+//
+// When NOT to subclass:
+//   → Domain data that's only for some users (Posts, Orders — separate table)
+//   → Sensitive data (SSN — separate secured table)
+//   → Things that change independently (profile image URL — can be separate)
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+
+namespace IdentityApiTutorial.Models
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ApplicationUser — custom user class for our API.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Inherits from IdentityUser, which gives us:
+    //   Id, UserName, Email, EmailConfirmed, PasswordHash, SecurityStamp,
+    //   ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,
+    //   TwoFactorEnabled, LockoutEnabled, LockoutEnd, AccessFailedCount,
+    //   Claims, Roles, Logins, Tokens (navigation properties)
+    //
+    // We add: FullName, Department, DateOfBirth
+    // These become extra columns in AspNetUsers when we run migrations.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class ApplicationUser : IdentityUser
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // FullName — the user's display name.
+        //   → Nullable (string?) because we don't require it at registration.
+        //   → Becomes a NULLABLE NVARCHAR column in the database.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? FullName { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Department — the user's department.
+        //   → Nullable — not all users have a department.
+        //   → Could be a claim instead ("department" claim), but as a column
+        //     it's easy to query and filter.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? Department { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // DateOfBirth — for age-restricted content or personalization.
+        //   → Nullable — not required.
+        //   → DateTime in C# maps to DATETIME2 in SQL Server.
+        // ─────────────────────────────────────────────────────────────────────────
+        public DateTime? DateOfBirth { get; set; }
+    }
+}
+```
+
+### ApplicationRole Subclass
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Models/ApplicationRole.cs
+// Video 02 — Identity architecture: custom role class
+// ─────────────────────────────────────────────────────────────────────────────
+// Subclass IdentityRole to add custom properties.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+
+namespace IdentityApiTutorial.Models
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ApplicationRole — custom role class.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Inherits from IdentityRole: Id, Name, NormalizedName, ConcurrencyStamp,
+    //   Claims (navigation to IdentityRoleClaim)
+    //
+    // We add: Description (human-readable explanation of what the role does),
+    //   CreatedDate (when the role was created — audit trail)
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class ApplicationRole : IdentityRole
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Description — explains what the role allows.
+        //   → Nullable — not all roles need a description.
+        //   → Useful for admin UIs that show role descriptions.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? Description { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // CreatedDate — when the role was created.
+        //   → Set to DateTime.UtcNow by default.
+        //   → Useful for auditing and debugging.
+        // ─────────────────────────────────────────────────────────────────────────
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    }
+}
+```
+
+### IdentityDbContext — Connecting Identity to Your Database
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Data/IdentityDbContext.cs
+// Video 02 — Identity architecture: DbContext
+// ─────────────────────────────────────────────────────────────────────────────
+// IdentityDbContext is the EF Core DbContext that Identity uses.
+// It maps IdentityUser, IdentityRole, and all related entities to database tables.
+//
+// We subclass it to:
+//   → Use our custom ApplicationUser and ApplicationRole
+//   → Add any non-Identity DbSets (if we have other tables)
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using IdentityApiTutorial.Models;
+
+namespace IdentityApiTutorial.Data
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // IdentityDbContext — our Identity database context.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Generic parameters:
+    //   TUser = ApplicationUser — our custom user class
+    //   TRole = ApplicationRole — our custom role class
+    //
+    // IdentityDbContext already includes:
+    //   DbSet<TUser> Users
+    //   DbSet<TRole> Roles
+    //   DbSet<IdentityUserClaim> UserClaims
+    //   DbSet<IdentityUserRole> UserRoles
+    //   DbSet<IdentityUserLogin> UserLogins
+    //   DbSet<IdentityUserToken> UserTokens
+    //   DbSet<IdentityRoleClaim> RoleClaims
+    //
+    // We don't need to add these — IdentityDbContext has them.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class IdentityDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Constructor — takes DbContextOptions.
+        //   → Options are configured in Program.cs with the connection string.
+        //   → This is the standard pattern for EF Core DbContexts.
+        // ─────────────────────────────────────────────────────────────────────────
+        public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
+            : base(options)
+        {
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // OnModelCreating — customize the EF Core model.
+        //   → Call base.OnModelCreating first to let Identity configure its tables.
+        //   → Add custom configurations here if needed.
+        //
+        // For now, we just call the base — Identity's default configuration is
+        // sufficient for our tutorial. In advanced scenarios you might:
+        //   → Rename tables (ToTable("MyUsers"))
+        //   → Change column types
+        //   → Add indexes
+        // ─────────────────────────────────────────────────────────────────────────
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            // Call the base — Identity configures its own tables, relationships,
+            // indexes, and constraints.
+            base.OnModelCreating(builder);
+
+            // Custom configurations can go here.
+            // Example: rename a table
+            // builder.Entity<ApplicationUser>().ToTable("MyUsers");
+        }
+    }
+}
+```
+
+---
+
+## Postman / Swagger Tests
+
+**No testable endpoints yet** — this is the architecture video. But here are the Postman setup steps that we'll use throughout:
+
+### Initial Postman Setup
+
+1. Create a new collection: **"ASP.NET Core Identity API"**
+2. Create an environment with these variables:
+   - `baseUrl` = `https://localhost:7001` (update to your actual port)
+   - `jwtToken` = (empty)
+   - `userId` = (empty)
+   - `userName` = `testuser`
+   - `userPassword` = `Test@1234`
+   - `userEmail` = `test@example.com`
+3. In the collection's Authorization tab:
+   - Type: **Bearer Token**
+   - Token: `{{jwtToken}}`
+   - This automatically adds the Authorization header to every request in the collection.
+
+### Swagger Setup
+
+1. In Program.cs, add:
+   ```csharp
+   builder.Services.AddEndpointsApiExplorer();
+   builder.Services.AddSwaggerGen();
+   ```
+2. In Program.cs, add:
+   ```csharp
+   app.UseSwagger();
+   app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Identity API v1"));
+   ```
+3. Run the API and navigate to `https://localhost:7001/swagger` to see all endpoints with "Try it out" buttons.
+
+---
+
+# Video 03 — Creating the API Project & Installing Packages
+
+## Theory & Definitions
+
+### What We're Building
+
+We're creating an ASP.NET Core Web API project — not MVC, not Razor Pages, not a Blazor app. A pure API that returns JSON and accepts JWT bearer tokens.
+
+### Why .NET 8/9 API Template?
+
+The `dotnet new webapi` template creates:
+- A `Program.cs` with the minimal hosting model (no `Startup.cs`).
+- A `Controllers/` folder with an example `WeatherForecastController`.
+- Swagger / OpenAPI configured by default.
+- Kestrel web server configuration.
+
+We'll remove the example controller and build our Identity API from scratch.
+
+### The NuGet Packages
+
+| Package | Purpose | Version (examples) |
+|---------|---------|--------------------|
+| `Microsoft.AspNetCore.Identity.EntityFrameworkCore` | Identity integration with EF Core — UserManager, SignInManager, RoleManager, IdentityDbContext | 8.x / 9.x |
+| `Microsoft.EntityFrameworkCore.SqlServer` | EF Core provider for SQL Server | 8.x / 9.x |
+| `Microsoft.EntityFrameworkCore.Tools` | EF Core CLI tools for migrations (`dotnet ef`) | 8.x / 9.x |
+| `Microsoft.EntityFrameworkCore.Design` | Design-time services for EF Core (required for migrations) | 8.x / 9.x |
+| `System.IdentityModel.Tokens.Jwt` | JWT token creation and validation (low-level JWT library) | 7.x / 8.x |
+| `Microsoft.AspNetCore.Authentication.JwtBearer` | JWT Bearer authentication middleware for ASP.NET Core | 8.x / 9.x |
+
+**Note on versions:** Use the versions that match your .NET SDK. For .NET 8, use 8.x packages. For .NET 9, use 9.x packages. The exact version numbers will be resolved by `dotnet restore`.
+
+### Package Reference in .csproj
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Identity with EF Core -->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"
+                      Version="8.0.*" />
+
+    <!-- EF Core SQL Server provider -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Version="8.0.*" />
+
+    <!-- EF Core tools (for dotnet ef migrations) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools"
+                      Version="8.0.*" />
+
+    <!-- EF Core design-time services -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design"
+                      Version="8.0.*" />
+
+    <!-- JWT token handling -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt"
+                      Version="7.0.*" />
+
+    <!-- JWT Bearer authentication middleware -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"
+                      Version="8.0.*" />
+  </ItemGroup>
+</Project>
+```
+
+### .NET CLI Commands
+
+```bash
+# Create the project
+dotnet new webapi -n IdentityApiTutorial -o IdentityApiTutorial
+
+# Install packages
+cd IdentityApiTutorial
+dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add package Microsoft.EntityFrameworkCore.Tools
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package System.IdentityModel.Tokens.Jwt
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+
+# Restore (usually automatic, but good to verify)
+dotnet restore
+```
+
+### Alternative: Visual Studio / Rider
+
+- **Visual Studio:** File → New → Project → ASP.NET Core Web API → name it "IdentityApiTutorial" → check "Use controllers" → uncheck "Enable OpenAPI support" (we'll add it manually for control) or leave it checked.
+- **Rider:** File → New → Project → ASP.NET Core Web API → same options.
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "Let's build the project from scratch. We're creating an ASP.NET Core Web API — no MVC, no views, just JSON endpoints. I'll show you the exact commands to run, the packages to install, and why each package matters. By the end of this video, you'll have a working API project ready for Identity configuration."
+
+**Show on screen:**
+
+> Terminal / command prompt with the `dotnet new` and `dotnet add package` commands. Show the `.csproj` file after packages are added. Show the project folder structure in Explorer / Finder.
+
+**Key points to emphasize (say this):**
+
+> "We use `dotnet new webapi`, not `dotnet new mvc` or `dotnet new razor`. We want a pure API — controllers that return JSON, not HTML views."
+
+> "Identity.EntityFrameworkCore is the package that brings UserManager, SignInManager, RoleManager, and IdentityDbContext. Without it, you don't have Identity."
+
+> "EF Core Tools is for migrations — `dotnet ef migrations add` and `dotnet ef database update`. You need it at design time, and it's referenced in the .csproj."
+
+> "System.IdentityModel.Tokens.Jwt is the low-level JWT library. We use it to create JWT tokens manually — not through the ASP.NET Core auth system, but by building the token ourselves and signing it."
+
+> "Microsoft.AspNetCore.Authentication.JwtBearer is the middleware that validates JWT tokens on incoming requests. It reads the Authorization header, validates the signature, and populates HttpContext.User with the claims."
+
+**Analogy (say this):**
+
+> "Think of the packages like tools in a toolbox. Identity.EntityFrameworkCore is the power drill — it does the heavy lifting (users, roles, claims). EntityFrameworkCore.SqlServer is the drill bit — it tells the drill how to connect to SQL Server. JWT Bearer is the security system — it checks IDs at the door. And System.IdentityModel.Tokens.Jwt is the badge printer — it creates the badges (JWT tokens) that people wear."
+
+**Common viewer questions:**
+
+> "Can I use SQLite instead of SQL Server?" — Yes. Replace `Microsoft.EntityFrameworkCore.SqlServer` with `Microsoft.EntityFrameworkCore.Sqlite`. The connection string changes too. SQLite is great for development and testing.
+
+> "What .NET version should I use?" — .NET 8 LTS is the current recommended version. It's supported until November 2026. .NET 9 is available but is a standard-term release. For tutorials and production, .NET 8 LTS is the safe choice.
+
+> "Do I need all these packages?" — Identity.EntityFrameworkCore and EF Core SQL Server are required. JWT Bearer is required for API auth. System.IdentityModel.Tokens.Jwt is needed if you manually generate JWTs (which we do). EF Core Tools and Design are for migrations — required at development time.
+
+**What to show:**
+
+- `dotnet new webapi` command and result
+- `dotnet add package` commands (one by one, showing output)
+- The final `.csproj` file with all PackageReference elements
+- The project folder structure (Controllers/, Models/, DTOs/, Data/, etc. — we'll create these in later videos)
+
+**What to skip:**
+
+- Docker setup (can be a separate video later)
+- CI/CD pipeline (out of scope)
+- Azure deployment (out of scope)
+
+---
+
+## Complete Implementation
+
+### Step 1: Create the Project
+
+```bash
+# Create a new ASP.NET Core Web API project
+dotnet new webapi -n IdentityApiTutorial -o IdentityApiTutorial
+
+# Navigate into the project
+cd IdentityApiTutorial
+```
+
+### Step 2: Install NuGet Packages
+
+```bash
+dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add package Microsoft.EntityFrameworkCore.Tools
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package System.IdentityModel.Tokens.Jwt
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+```
+
+### Step 3: Verify the .csproj File
+
+After installing packages, your `.csproj` file should look like this:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.*" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.*" />
+  </ItemGroup>
+
+</Project>
+```
+
+### Step 4: Clean Up the Template Files
+
+Remove the default `WeatherForecastController.cs` (or any example controller) and the `WeatherForecast.cs` model — we'll replace them with our Identity API.
+
+```bash
+# Remove the default WeatherForecast files
+rm Controllers/WeatherForecastController.cs
+rm WeatherForecast.cs
+# Or on Windows:
+# del Controllers\WeatherForecastController.cs
+# del WeatherForecast.cs
+```
+
+### Step 5: Create the Folder Structure
+
+```bash
+# Create folders for our code
+mkdir Controllers
+mkdir Models
+mkdir DTOs
+mkdir Data
+mkdir Services
+mkdir Validators
+```
+
+### Step 6: Verify the Project Builds
+
+```bash
+dotnet build
+```
+
+You should see: `Build succeeded.` with no errors.
+
+---
+
+## Postman / Swagger Tests
+
+### Swagger Verification
+
+After running `dotnet run` or pressing F5 in Visual Studio, navigate to:
+
+```
+https://localhost:7001/swagger
+```
+
+(Replace 7001 with your actual port from the terminal output or launchSettings.json.)
+
+You should see the Swagger UI with no endpoints (we haven't added any yet). This confirms Swagger is configured correctly.
+
+### Postman Setup (do this now)
+
+1. **Create a collection:** "ASP.NET Core Identity API"
+2. **Create an environment** with variables:
+   - `baseUrl` = `https://localhost:7001`
+   - `jwtToken` = (empty)
+   - `userId` = (empty)
+   - `userName` = `testuser`
+   - `userPassword` = `Test@1234`
+   - `userEmail` = `test@example.com`
+3. **Set collection Authorization:** Bearer Token, token = `{{jwtToken}}`
+
+We'll use these throughout the playlist. Fill in `jwtToken` and `userId` after Video 07 (registration) and Video 08 (login).
+
+---
+
+# Video 04 — Configuring Identity Services in Program.cs (API + JWT)
+
+## Theory & Definitions
+
+### What Program.cs Does in the Minimal Hosting Model
+
+In .NET 6+, `Program.cs` is the entry point. It:
+1. Creates a `WebApplicationBuilder` (the `Builder` pattern for DI and configuration).
+2. Configures services (adds them to the DI container).
+3. Builds the `WebApplication`.
+4. Configures the middleware pipeline (authentication, authorization, routing, etc.).
+5. Runs the application.
+
+There is no `Startup.cs` — everything is in `Program.cs`. This is the **minimal hosting model**.
+
+### Identity Configuration — AddIdentityCore vs. AddIdentity
+
+**`AddIdentity<TUser, TRole>()`** — the full Identity setup:
+- Registers all Identity services.
+- Adds **cookie-based authentication** by default (Cookie Authentication Middleware).
+- Adds default UI (if using Razor Pages / MVC).
+- Adds the Identity UI scaffolding.
+
+**`AddIdentityCore<TUser>()`** — the lightweight API-friendly setup:
+- Registers only the core Identity services (UserManager, SignInManager, etc.).
+- Does **NOT** add cookie authentication by default.
+- Does **NOT** add Identity UI.
+- Lighter pipeline — exactly what an API needs.
+- You add JWT Bearer authentication separately.
+
+**Why AddIdentityCore for APIs:**
+
+In an API, we don't want cookie authentication. We want JWT bearer tokens. `AddIdentityCore` gives us the Identity services without the cookie middleware. We then add JWT Bearer authentication ourselves.
+
+### JWT Bearer Authentication — How It Works
+
+JWT Bearer authentication works in two directions:
+
+**1. Outgoing (issuing tokens):**
+- When a user logs in successfully, we create a JWT token manually (using `System.IdentityModel.Tokens.Jwt`).
+- We sign it with a secret key (HMAC-SHA256 or an RSA key).
+- We return it to the client.
+- The client stores it and sends it in the `Authorization: Bearer <token>` header on future requests.
+
+**2. Incoming (validating tokens):**
+- The `JwtBearer` middleware intercepts incoming requests.
+- It reads the `Authorization: Bearer <token>` header.
+- It validates the token signature, expiration, issuer, audience, etc.
+- If valid, it creates a `ClaimsPrincipal` from the JWT claims and sets `HttpContext.User`.
+- If invalid, it returns 401 Unauthorized.
+
+### The JWT Token Structure
+
+A JWT token has three parts, separated by dots:
+
+```
+header.payload.signature
+```
+
+**Header:** `{"alg": "HS256", "typ": "JWT"}` — algorithm and type, Base64Url encoded.
+
+**Payload (claims):** `{"sub": "user-id", "name": "Ahmad", "role": "Admin", "exp": 1234567890, ...}` — the claims, Base64Url encoded.
+
+**Signature:** HMAC-SHA256 of (header + "." + payload) with the secret key — ensures the token hasn't been tampered with.
+
+The client can decode the payload (it's just Base64Url encoded, not encrypted), but cannot forge the signature without the secret key.
+
+### JWT Claims We Include
+
+| Claim | JWT Claim Name | Source | Purpose |
+|-------|---------------|--------|---------|
+| User ID | `sub` (subject) | `user.Id` | Uniquely identifies the user |
+| UserName | `username` (custom) | `user.UserName` | Display name |
+| Email | `email` (custom or `email`) | `user.Email` | Email address |
+| Roles | `role` (custom, or `roles` as array) | `userManager.GetRolesAsync(user)` | Role-based authorization |
+| Issued At | `iat` | Current time | When the token was issued |
+| Expiration | `exp` | Issued At + expiration window | When the token expires |
+
+### Configuration Settings — appsettings.json
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=IdentityApiDb;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-256-bit-secret-key-here-at-least-32-characters-long",
+    "Issuer": "IdentityApiTutorial",
+    "Audience": "IdentityApiTutorialClients",
+    "ExpirationInMinutes": 60
+  }
+}
+```
+
+**Security note:** The `SecretKey` must be:
+- At least 256 bits (32 characters) for HS256.
+- Stored securely — not in source code in production. Use Azure Key Vault, environment variables, or user secrets.
+- In development, you can use user secrets or a hardcoded key (for testing only).
+
+### The Full Program.cs Configuration
+
+```csharp
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using IdentityApiTutorial.Data;
+using IdentityApiTutorial.Models;
+using IdentityApiTutorial.Services;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Database Context — register IdentityDbContext with SQL Server
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddDbContext<IdentityDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Identity Core — register Identity services (NO cookie auth)
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+    options.Password.MaxRepeatedChars = 3;
+
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+
+    // User settings
+    options.User.RequireUniqueEmail = true;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+})
+.AddEntityFrameworkStores<IdentityDbContext>()
+.AddRoles<ApplicationRole>()
+.AddDefaultTokenProviders();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. JWT Authentication — configure JWT Bearer authentication
+// ─────────────────────────────────────────────────────────────────────────────
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew = TimeSpan.Zero  // Remove default 5-minute clock skew
+    };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Authorization — enable policy-based authorization
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddAuthorization();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Custom services — register our JwtService
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddScoped<JwtService>();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Controllers + Swagger
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ASP.NET Core Identity API",
+        Version = "v1",
+        Description = "A complete API for user registration, login, roles, and authorization using ASP.NET Core Identity and JWT."
+    });
+
+    // Add JWT Bearer authentication to Swagger UI
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Build and configure the pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// ──── MIDDLEWARE ORDER MATTERS ────
+// Authentication MUST come before Authorization
+app.UseAuthentication();   // Validates JWT tokens on incoming requests
+app.UseAuthorization();    // Checks [Authorize] attributes and policies
+
+app.MapControllers();
+
+app.Run();
+```
+
+### Line-by-Line Explanation of Key Sections
+
+**Section 1 — Database Context:**
+
+```csharp
+builder.Services.AddDbContext<IdentityDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+```
+
+- `AddDbContext<IdentityDbContext>` — registers `IdentityDbContext` as a scoped service in DI.
+- `options.UseSqlServer(connectionString)` — tells EF Core to use SQL Server with the given connection string.
+- The connection string comes from `appsettings.json` via `builder.Configuration`.
+- Every time a controller requests `IdentityDbContext`, it gets a new instance scoped to the current request.
+
+**Section 2 — Identity Core:**
+
+```csharp
+builder.Services.AddIdentityCore<ApplicationUser>(options => { ... })
+    .AddEntityFrameworkStores<IdentityDbContext>()
+    .AddRoles<ApplicationRole>()
+    .AddDefaultTokenProviders();
+```
+
+- `AddIdentityCore<ApplicationUser>` — registers UserManager, SignInManager, and all core Identity services for `ApplicationUser`. No cookie auth.
+- `options.Password.*` — configures password validation rules.
+- `options.Lockout.*` — configures account lockout behavior.
+- `options.User.RequireUniqueEmail` — requires email to be unique across all users.
+- `.AddEntityFrameworkStores<IdentityDbContext>()` — registers EF Core stores that use our DbContext for persistence.
+- `.AddRoles<ApplicationRole>()` — enables role management with our custom `ApplicationRole` class.
+- `.AddDefaultTokenProviders()` — registers the default token providers (for email confirmation, password reset, etc.). These generate tokens that are valid for a configurable time.
+
+**Section 3 — JWT Authentication:**
+
+```csharp
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+```
+
+- `AddAuthentication` — registers the authentication services.
+- `DefaultAuthenticateScheme` — the scheme to use when no scheme is specified. Set to JWT Bearer.
+- `DefaultChallengeScheme` — the scheme to use when a user is not authenticated and the resource requires authentication. Set to JWT Bearer (returns 401).
+- `AddJwtBearer` — adds the JWT Bearer authentication handler.
+- `TokenValidationParameters` — controls how JWT tokens are validated:
+  - `ValidateIssuer` — check that the token was issued by our server (`ValidIssuer`).
+  - `ValidateAudience` — check that the token is for our API (`ValidAudience`).
+  - `ValidateLifetime` — check that the token hasn't expired (`exp` claim).
+  - `ValidateIssuerSigningKey` — check that the token was signed with our key.
+  - `IssuerSigningKey` — the key used to sign and validate tokens. We use `SymmetricSecurityKey` (HMAC-SHA256) with our secret key.
+  - `ClockSkew` — allows for slight time differences between servers. `TimeSpan.Zero` means no tolerance — the token expiration is checked exactly. Use a small skew (e.g., 30 seconds) in production to handle clock differences.
+
+**Section 4 — Authorization:**
+
+```csharp
+builder.Services.AddAuthorization();
+```
+
+- Registers the authorization services.
+- Enables `[Authorize]` attributes, policy-based authorization, and role/claim checks.
+- Without this, `[Authorize]` attributes are ignored.
+
+**Section 5 — Custom Services:**
+
+```csharp
+builder.Services.AddScoped<JwtService>();
+```
+
+- Registers our `JwtService` as a scoped service.
+- Scoped means one instance per request — appropriate for a service that generates tokens (it reads configuration, builds a token, returns it — no state to share across requests).
+
+**Section 6 — Controllers + Swagger:**
+
+```csharp
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(...);
+```
+
+- `AddControllers()` — registers the controller infrastructure (routing, model binding, validation, etc.).
+- `AddEndpointsApiExplorer()` — required for Swagger to discover endpoints.
+- `AddSwaggerGen()` — configures Swagger generation. We also add JWT Bearer security definition so Swagger UI shows an "Authorize" button.
+
+**Middleware Order:**
+
+```csharp
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+```
+
+- `UseAuthentication()` — adds the authentication middleware to the pipeline. It runs first, validates the JWT, and sets `HttpContext.User`.
+- `UseAuthorization()` — adds the authorization middleware. It runs after authentication, checks `[Authorize]` attributes, and returns 401/403 if unauthorized.
+- `MapControllers()` — maps controller routes to the pipeline.
+- **Order matters:** Authentication must come before Authorization. If you swap them, Authorization runs before Authentication has set `HttpContext.User`, and it will always fail.
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "This is where the magic happens — Program.cs. This single file configures everything: the database, Identity services, JWT authentication, authorization, and our custom services. I'll walk through it line by line, explain why each piece is there, and show you the most common mistakes people make when configuring Identity in an API."
+
+**Show on screen:**
+
+> The full `Program.cs` file. Highlight each section as you explain it. Show the `appsettings.json` file with the connection string and JWT settings. Show the Swagger UI with the "Authorize" button after running the API.
+
+**Key points to emphasize (say this):**
+
+> "AddIdentityCore — not AddIdentity. AddIdentity adds cookie authentication, which we don't want in an API. AddIdentityCore gives us UserManager, SignInManager, and all the Identity services without the cookie middleware."
+
+> "JWT authentication has two parts: issuing tokens (we do that manually in our JwtService after login) and validating tokens (the JwtBearer middleware does that automatically on every request). Both are configured in Program.cs."
+
+> "Middleware order is critical. UseAuthentication before UseAuthorization. If you get it wrong, every request fails with 401 even when the user is authenticated."
+
+> "The secret key must be at least 256 bits for HS256. Store it securely in production — never commit it to source control. In development, use user secrets or a .env file."
+
+> "ClockSkew = TimeSpan.Zero means no tolerance for clock differences. In production, consider a small skew (30 seconds) to handle servers with slightly different clocks."
+
+**Analogy (say this):**
+
+> "Program.cs is like the control room of a building. The database context is the wiring that connects to the database. Identity Core is the security system installer — it sets up the cameras, the badge readers, the access control. JWT Bearer is the badge scanner at the door — it reads badges and decides who gets in. Authorization is the access control policy — it checks if the person with the badge is allowed in that room. And the middleware order is the order you walk through the building — you scan your badge (authenticate) before the door checks if you're allowed (authorize)."
+
+**Common viewer questions:**
+
+> "Why not use AddIdentity?" — AddIdentity adds cookie authentication, which sets cookies and does redirects. In an API, we want JWT bearer tokens and JSON responses, not cookies and redirects. AddIdentityCore is the lighter version that gives us the Identity services without the cookie infrastructure.
+
+> "What if I want both JWT and cookies?" — You can add both authentication schemes. Set the default scheme to JWT Bearer for the API, and add cookie authentication as a secondary scheme for any MVC parts. But for a pure API, stick with JWT Bearer only.
+
+> "How do I rotate the JWT secret key?" — Generate a new key, update the configuration, and issue new tokens. Old tokens signed with the old key will fail validation. This is a production ops concern — for the tutorial, we use a single key.
+
+> "What's the difference between Issuer and Audience?" — Issuer is who created the token (our API). Audience is who the token is for (our API's clients). Both are validated to prevent tokens issued for one API from being used on another. In a simple setup, both can be the same string.
+
+**What to show:**
+
+- The full Program.cs file, section by section
+- The appsettings.json file
+- Swagger UI with the "Authorize" button
+- Running the API and seeing it start without errors
+- A test request to a non-existent endpoint returning 404 (to show the API is running)
+
+**What to skip:**
+
+- Data protection configuration (advanced — covered lightly if at all)
+- Multiple authentication schemes (keep it simple with JWT Bearer only)
+- OAuth / OpenID Connect configuration (different topic)
+- Azure AD / external identity provider integration (different topic)
+
+---
+
+## Complete Implementation
+
+### File: appsettings.json
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=IdentityApiDb;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+  "JwtSettings": {
+    "SecretKey": "YourSuperSecretKeyThatIsAtLeast32CharactersLong!",
+    "Issuer": "IdentityApiTutorial",
+    "Audience": "IdentityApiTutorialClients",
+    "ExpirationInMinutes": 60
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+**Important:** The `SecretKey` must be at least 32 characters (256 bits) for HS256. Replace with your own key. In production, use environment variables or Azure Key Vault — never store secrets in `appsettings.json` committed to source control.
+
+### File: Program.cs — Complete Configuration
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Program.cs
+// Video 04 — Identity + JWT Configuration for an API
+// ─────────────────────────────────────────────────────────────────────────────
+// This file configures:
+//   1. Database context (IdentityDbContext with SQL Server)
+//   2. Identity Core services (UserManager, SignInManager, RoleManager)
+//   3. JWT Bearer authentication (token validation on incoming requests)
+//   4. Authorization services ([Authorize] attributes, policies)
+//   5. Custom services (JwtService for manual token generation)
+//   6. Controllers + Swagger (with JWT Bearer security definition)
+//
+// This is the minimal hosting model (.NET 6+). No Startup.cs.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using IdentityApiTutorial.Data;
+using IdentityApiTutorial.Models;
+using IdentityApiTutorial.Services;
+using System.Text;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Create the WebApplicationBuilder.
+//   → WebApplication.CreateBuilder(args) creates a builder with:
+//     - Configuration (from appsettings.json, environment variables, etc.)
+//     - DI container (IServiceCollection)
+//     - Host configuration (Kestrel, etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+var builder = WebApplication.CreateBuilder(args);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 1: Database Context
+// ═══════════════════════════════════════════════════════════════════════════════
+// Register IdentityDbContext as a scoped service.
+//   → Scoped = one instance per HTTP request.
+//   → UseSqlServer = use the SQL Server EF Core provider.
+//   → Connection string from appsettings.json via Configuration.
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddDbContext<IdentityDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 2: Identity Core Services
+// ═══════════════════════════════════════════════════════════════════════════════
+// AddIdentityCore<ApplicationUser> registers:
+//   → UserManager<ApplicationUser>
+//   → SignInManager<ApplicationUser>
+//   → IdentityErrorDescriber (error messages)
+//   → PasswordHasher<ApplicationUser>
+//   → And all other core Identity services
+//
+// Uses AddIdentityCore (NOT AddIdentity):
+//   → AddIdentity adds cookie authentication (not wanted in API)
+//   → AddIdentityCore gives us services only — we add JWT separately
+//
+// Configure options:
+//   → Password: minimum length, digit, uppercase, lowercase, non-alphanumeric
+//   → Lockout: 5 failed attempts → 5-minute lockout
+//   → User: unique email required, allowed characters for UserName
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
+{
+    // ─────────────────────────────────────────────────────────────────────────
+    // Password settings — Identity validates these on CreateAsync and
+    // ChangePasswordAsync. If any rule fails, IdentityResult has errors.
+    // ─────────────────────────────────────────────────────────────────────────
+    options.Password.RequireDigit = true;              // Must contain 0-9
+    options.Password.RequiredLength = 8;               // Minimum 8 characters
+    options.Password.RequireNonAlphanumeric = true;    // Must contain !, @, #, etc.
+    options.Password.RequireUppercase = true;          // Must contain A-Z
+    options.Password.RequireLowercase = true;          // Must contain a-z
+    options.Password.MaxRepeatedChars = 3;             // No more than 3 identical consecutive chars
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Lockout settings — controls account lockout behavior.
+    //   → DefaultLockoutTimeSpan: how long a lockout lasts (5 minutes)
+    //   → MaxFailedAccessAttempts: failed logins before lockout (5)
+    //   → AllowedForNewUsers: whether new users are lockout-enabled by default
+    // ─────────────────────────────────────────────────────────────────────────
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // User settings — controls UserName and Email validation.
+    //   → RequireUniqueEmail: each email must be unique (no duplicates)
+    //   → AllowedUserNameCharacters: characters allowed in UserName
+    // ─────────────────────────────────────────────────────────────────────────
+    options.User.RequireUniqueEmail = true;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+})
+// ─────────────────────────────────────────────────────────────────────────────
+// AddEntityFrameworkStores<IdentityDbContext> — registers EF Core stores.
+//   → IUserStore, IUserClaimStore, IUserRoleStore, IUserLoginStore,
+//     IUserTokenStore, IUserPasswordStore, etc.
+//   → All backed by IdentityDbContext and our database.
+// ─────────────────────────────────────────────────────────────────────────────
+.AddEntityFrameworkStores<IdentityDbContext>()
+// ─────────────────────────────────────────────────────────────────────────────
+// AddRoles<ApplicationRole> — enables role management with our custom role.
+//   → Registers RoleManager<ApplicationRole>
+//   → Without this, roles are not available (IdentityUser has no role support)
+// ─────────────────────────────────────────────────────────────────────────────
+.AddRoles<ApplicationRole>()
+// ─────────────────────────────────────────────────────────────────────────────
+// AddDefaultTokenProviders — registers token providers for:
+//   → Email confirmation tokens
+//   → Password reset tokens
+//   → Any other token-based operations
+//   → These tokens are time-limited and single-use.
+// ─────────────────────────────────────────────────────────────────────────────
+.AddDefaultTokenProviders();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 3: JWT Bearer Authentication
+// ═══════════════════════════════════════════════════════════════════════════════
+// Configure JWT Bearer as the default authentication scheme.
+//   → On incoming requests: validates JWT tokens from Authorization header
+//   → On challenges: returns 401 when user is not authenticated
+//
+// TokenValidationParameters controls how tokens are validated:
+//   → ValidateIssuer: check the "iss" claim matches our issuer
+//   → ValidateAudience: check the "aud" claim matches our audience
+//   → ValidateLifetime: check the "exp" claim (token not expired)
+//   → ValidateIssuerSigningKey: check the signature with our key
+//   → IssuerSigningKey: the key used to sign/validate (SymmetricSecurityKey)
+//   → ClockSkew: time tolerance for clock differences (Zero = exact)
+// ─────────────────────────────────────────────────────────────────────────────
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+
+builder.Services.AddAuthentication(options =>
+{
+    // Default scheme for authentication (validating incoming tokens)
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    // Default scheme for challenges (when user is not authenticated)
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        // Validate the issuer claim ("iss")
+        ValidateIssuer = true,
+        // Validate the audience claim ("aud")
+        ValidateAudience = true,
+        // Validate the expiration claim ("exp")
+        ValidateLifetime = true,
+        // Validate the token signature
+        ValidateIssuerSigningKey = true,
+
+        // The issuer — must match the "iss" claim in the token
+        ValidIssuer = jwtSettings["Issuer"],
+
+        // The audience — must match the "aud" claim in the token
+        ValidAudience = jwtSettings["Audience"],
+
+        // The signing key — used to validate the token signature.
+        // SymmetricSecurityKey = HMAC-SHA256 (HS256 algorithm).
+        // Encoding.UTF8.GetBytes converts the string key to bytes.
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+
+        // Clock skew — time tolerance for differences between server clocks.
+        // TimeSpan.Zero = no tolerance (exact matching).
+        // In production, consider TimeSpan.FromMinutes(0.5) for 30-second tolerance.
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 4: Authorization Services
+// ═══════════════════════════════════════════════════════════════════════════════
+// AddAuthorization registers the authorization infrastructure:
+//   → [Authorize] attribute support
+//   → Policy-based authorization (requirements, handlers)
+//   → Role-based authorization ([Authorize(Roles="Admin")])
+//   → Claim-based authorization
+//
+// Without this, [Authorize] attributes are ignored and all endpoints are public.
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddAuthorization();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 5: Custom Services
+// ═══════════════════════════════════════════════════════════════════════════════
+// Register our custom JwtService as a scoped service.
+//   → Scoped = one instance per HTTP request.
+//   → JwtService generates JWT tokens manually (not through the auth system).
+//   → It reads configuration, builds claims, signs the token, returns it.
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddScoped<JwtService>();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 6: Controllers + Swagger (OpenAPI)
+// ═══════════════════════════════════════════════════════════════════════════════
+// AddControllers — registers the controller infrastructure:
+//   → Routing, model binding, model validation, JSON serialization.
+//   → [ApiController] features: automatic 400 on invalid model, problem details.
+//
+// AddEndpointsApiExplorer — required for Swagger to discover endpoints.
+//
+// AddSwaggerGen — configures Swagger/OpenAPI document generation:
+//   → SwaggerDoc: metadata (title, version, description).
+//   → AddSecurityDefinition: adds "Bearer" security scheme to Swagger UI.
+//   → AddSecurityRequirement: requires Bearer token for all endpoints.
+//   → This makes Swagger UI show an "Authorize" button where you paste your JWT.
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    // Swagger document metadata
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ASP.NET Core Identity API",
+        Version = "v1",
+        Description = "A complete API for user registration, login, roles, and authorization using ASP.NET Core Identity and JWT."
+    });
+
+    // Add JWT Bearer security definition
+    // This adds an "Authorize" button to Swagger UI
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    // Require the Bearer token for all endpoints
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BUILD THE APPLICATION
+// ═══════════════════════════════════════════════════════════════════════════════
+// builder.Build() creates the WebApplication with all configured services.
+// ─────────────────────────────────────────────────────────────────────────────
+var app = builder.Build();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIGURE THE MIDDLEWARE PIPELINE
+// ═══════════════════════════════════════════════════════════════════════════════
+// The order of middleware is CRITICAL:
+//   1. UseSwagger / UseSwaggerUI — only in development (Swagger UI)
+//   2. UseHttpsRedirection — redirects HTTP to HTTPS
+//   3. UseAuthentication — validates JWT tokens (sets HttpContext.User)
+//   4. UseAuthorization — checks [Authorize] attributes (uses HttpContext.User)
+//   5. MapControllers — routes requests to controllers
+//
+// Authentication MUST come before Authorization.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Swagger UI — only in development environment
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Identity API v1"));
+}
+
+// HTTPS redirection — redirect HTTP requests to HTTPS
+app.UseHttpsRedirection();
+
+// ──── AUTHENTICATION (before Authorization!) ────
+// This middleware:
+//   → Reads the Authorization: Bearer <token> header
+//   → Validates the JWT token (signature, expiration, issuer, audience)
+//   → Creates a ClaimsPrincipal from the JWT claims
+//   → Sets HttpContext.User = the ClaimsPrincipal
+//   → If no token or invalid token: HttpContext.User is unauthenticated
+app.UseAuthentication();
+
+// ──── AUTHORIZATION (after Authentication!) ────
+// This middleware:
+//   → Checks [Authorize] attributes on controllers and actions
+//   → Checks policy requirements
+//   → If user is not authenticated → returns 401 Unauthorized
+//   → If user is authenticated but not authorized → returns 403 Forbidden
+app.UseAuthorization();
+
+// Map controller routes to the pipeline
+app.MapControllers();
+
+// Run the application
+app.Run();
+```
+
+---
+
+## Postman / Swagger Tests
+
+### Swagger UI Test
+
+1. Run the API: `dotnet run` (or press F5 in Visual Studio).
+2. Navigate to `https://localhost:7001/swagger` (adjust port as needed).
+3. You should see the Swagger UI with the title "ASP.NET Core Identity API".
+4. Click the "Authorize" button — you'll see a dialog to enter a Bearer token.
+5. Don't enter a token yet — we'll get one after Video 08.
+6. Verify the Swagger UI shows no endpoints yet (we haven't added controllers).
+
+### Postman Test — Verify API Is Running
+
+1. Create a new request: `GET https://localhost:7001/swagger/v1/swagger.json`
+2. Send the request.
+3. Expected: `200 OK` with the Swagger JSON document (a large JSON object describing the API).
+4. This confirms the API is running and Swagger is configured correctly.
+
+### Postman Test — Verify Authentication Is Active
+
+1. Create a new request: `GET https://localhost:7001/api/protected` (this endpoint doesn't exist yet, but we'll create it in Video 10).
+2. Send the request without an Authorization header.
+3. Expected: `404 Not Found` (endpoint doesn't exist yet) — but once we create it, it will return `401 Unauthorized` because the `[Authorize]` attribute will require a JWT token.
+
+### Postman Test — Verify Swagger Security Definition
+
+1. In Swagger UI, check that the "Authorize" button is present.
+2. Click it — you should see a dialog with a field for the Bearer token.
+3. This confirms that Swagger is configured to send JWT tokens with requests.
+
+---
+
+# Video 05 — The Identity Models — IdentityUser, IdentityRole, Custom Classes
+
+## Theory & Definitions
+
+### What Are Identity Models?
+
+Identity models are the C# classes that represent users, roles, and related entities in your application. They are the foundation of Identity — every operation (create user, find user, add role, etc.) works with these classes.
+
+### IdentityUser — The Default User Class
+
+`IdentityUser` is the default user class provided by Identity. It has all the properties you need for a basic user:
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `Id` | `string` | Primary key (GUID stored as string) |
+| `UserName` | `string` | Unique login name |
+| `NormalizedUserName` | `string` | Uppercase for case-insensitive lookups |
+| `Email` | `string` | Email address |
+| `NormalizedEmail` | `string` | Uppercase for case-insensitive lookups |
+| `EmailConfirmed` | `bool` | Whether email has been verified |
+| `PasswordHash` | `string` | Hashed password (never plaintext) |
+| `SecurityStamp` | `string` | Random value that changes when credentials change |
+| `ConcurrencyStamp` | `string` | Optimistic concurrency token |
+| `PhoneNumber` | `string` | Phone number |
+| `PhoneNumberConfirmed` | `bool` | Whether phone is verified |
+| `TwoFactorEnabled` | `bool` | Whether 2FA is enabled |
+| `LockoutEnabled` | `bool` | Whether lockout is enabled for this user |
+| `LockoutEnd` | `DateTimeOffset?` | When lockout expires |
+| `AccessFailedCount` | `int` | Failed login attempts count |
+| `Claims` | `ICollection<IdentityUserClaim>` | Navigation to user's claims |
+| `Roles` | `ICollection<IdentityUserRole>` | Navigation to user's roles |
+| `Logins` | `ICollection<IdentityUserLogin>` | Navigation to external logins |
+| `Tokens` | `ICollection<IdentityUserToken>` | Navigation to tokens |
+
+### Why Subclass IdentityUser?
+
+Subclass `IdentityUser` when you need extra properties on the Users table. The subclass becomes your application's user class, and Identity uses it everywhere (UserManager, SignInManager, DbContext, etc.).
+
+**When to subclass:**
+
+| Need | Approach |
+|------|----------|
+| Additional user properties (FullName, Department, Bio, etc.) | Subclass IdentityUser — they become columns in AspNetUsers |
+| Data that's only for some users and is large (profile image, settings) | Separate table linked by UserId |
+| Audit fields (CreatedDate, CreatedBy, ModifiedDate) | Subclass or implement as shadow properties in DbContext |
+| Soft delete (IsDeleted flag) | Subclass with IsDeleted property |
+
+**When NOT to subclass:**
+
+| Situation | Approach |
+|-----------|----------|
+| Data that's not about the user identity (Orders, Posts, Comments) | Separate entity with UserId foreign key |
+| Sensitive data that needs different security (SSN, payment info) | Separate secured table, NOT on IdentityUser |
+| Properties that change frequently and are large ( preferences JSON) | Separate table or claim |
+
+### ApplicationUser — Our Custom User Class
+
+```csharp
+public class ApplicationUser : IdentityUser
+{
+    public string? FullName { get; set; }
+    public string? Department { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+}
+```
+
+This class:
+- Inherits all properties from `IdentityUser`.
+- Adds `FullName`, `Department`, and `DateOfBirth` as nullable properties.
+- When we run EF Core migrations, these become additional columns in the `AspNetUsers` table.
+
+### ApplicationRole — Our Custom Role Class
+
+```csharp
+public class ApplicationRole : IdentityRole
+{
+    public string? Description { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}
+```
+
+This class:
+- Inherits all properties from `IdentityRole` (Id, Name, NormalizedName, ConcurrencyStamp, Claims).
+- Adds `Description` (human-readable explanation of the role) and `CreatedDate` (audit trail).
+- When we run EF Core migrations, these become additional columns in the `AspNetRoles` table.
+
+### IdentityUserClaim — What Claims Look Like in the Database
+
+```csharp
+// IdentityUserClaim is provided by Identity — you don't need to create it.
+// It maps to the AspNetUserClaims table.
+
+public class IdentityUserClaim : IdentityUserClaim<string>
+{
+    // Properties:
+    //   Id (int) — primary key
+    //   UserId (string) — foreign key to AspNetUsers
+    //   ClaimType (string) — the claim type (e.g., "department", "role")
+    //   ClaimValue (string) — the claim value (e.g., "Engineering", "Admin")
+}
+```
+
+Claims are stored as rows in the `AspNetUserClaims` table, not as columns on the Users table. This is a key design decision — it allows unlimited claims per user without altering the Users table schema.
+
+### IdentityUserRole — The User-Role Junction Table
+
+```csharp
+// IdentityUserRole is provided by Identity.
+// It maps to the AspNetUserRoles table (junction table between Users and Roles).
+
+public class IdentityUserRole : IdentityUserRole<string>
+{
+    // Properties:
+    //   UserId (string) — foreign key to AspNetUsers
+    //   RoleId (string) — foreign key to AspNetRoles
+}
+```
+
+This is a many-to-many relationship between Users and Roles. A user can have multiple roles, and a role can have multiple users. The junction table `AspNetUserRoles` stores the associations.
+
+### IdentityUserLogin — External Login Associations
+
+```csharp
+// IdentityUserLogin maps to AspNetUserLogins.
+// Stores external login information (Google, Facebook, Microsoft, etc.).
+
+public class IdentityUserLogin : IdentityUserLogin<string>
+{
+    // Properties:
+    //   LoginProvider (string) — e.g., "Google", "Facebook"
+    //   ProviderKey (string) — the user's ID from the external provider
+    //   ProviderDisplayName (string) — display name of the provider
+    //   UserId (string) — foreign key to AspNetUsers
+}
+```
+
+Each user can have multiple external logins. This enables "Login with Google" / "Login with Facebook" — the user's Google account is linked to their Identity user account.
+
+### IdentityUserToken — Tokens for Email Confirmation, Password Reset, etc.
+
+```csharp
+// IdentityUserToken maps to AspNetUserTokens.
+// Stores tokens generated by Identity's token providers.
+
+public class IdentityUserToken : IdentityUserToken<string>
+{
+    // Properties:
+    //   UserId (string) — foreign key to AspNetUsers
+    //   LoginProvider (string) — the provider that generated the token
+    //   Name (string) — the token name/purpose (e.g., "EmailConfirmation", "PasswordReset")
+    //   Value (string) — the token value (hashed, not plaintext)
+}
+```
+
+These tokens are used for email confirmation and password reset flows. They are generated by `UserManager.GenerateEmailConfirmationTokenAsync` and `UserManager.GeneratePasswordResetTokenAsync`.
+
+### How EF Core Maps These Classes to Tables
+
+When you run `dotnet ef migrations add InitialCreate` and `dotnet ef database update`, EF Core creates these tables:
+
+| C# Class | Database Table | Notes |
+|----------|---------------|-------|
+| `ApplicationUser` | `AspNetUsers` | Inherits from IdentityUser; extra properties → extra columns |
+| `ApplicationRole` | `AspNetRoles` | Inherits from IdentityRole; extra properties → extra columns |
+| `IdentityUserClaim` | `AspNetUserClaims` | Junction table for user claims |
+| `IdentityUserRole` | `AspNetUserRoles` | Junction table for user-role associations |
+| `IdentityUserLogin` | `AspNetUserLogins` | External login associations |
+| `IdentityUserToken` | `AspNetUserTokens` | Tokens for email confirm, password reset |
+| `IdentityRoleClaim` | `AspNetRoleClaims` | Claims attached to roles |
+
+The table names are defaults — you can customize them in `OnModelCreating` if needed.
+
+### The String Primary Key — Why string and not int?
+
+Identity uses `string` as the primary key type by default. Why?
+
+- **GUIDs as strings:** Identity generates user IDs as GUIDs (e.g., "3fa85f64-5717-4562-b3fc-2c963f66afa6"). Storing them as `string` avoids the need for a separate integer auto-increment column.
+- **Flexibility:** Using `string` allows any string as the key — not just GUIDs. You could use email addresses, usernames, or custom identifiers.
+- **Consistency:** All Identity entities (User, Role) use the same key type, making relationships simpler.
+
+If you want integer keys, you can use `IdentityUser<int>` and `IdentityRole<int>`, but this is less common and requires more configuration.
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "Now we define our models — the C# classes that represent users and roles in our system. We'll subclass IdentityUser and IdentityRole to add custom properties. I'll show you what properties Identity gives you by default, which ones you should keep, which ones you should add, and how EF Core maps all of this to database tables."
+
+**Show on screen:**
+
+> The `ApplicationUser` and `ApplicationRole` classes, side by side with the base `IdentityUser` and `IdentityRole` to show what's inherited and what's added. The EF Core migration output showing the tables and columns. A database viewer showing the AspNetUsers and AspNetRoles tables.
+
+**Key points to emphasize (say this):**
+
+> "Subclass IdentityUser when you need extra columns on the Users table. Don't subclass for data that belongs in a separate table — keep IdentityUser focused on identity data."
+
+> "Claims are stored in a separate table (AspNetUserClaims), not as columns on the Users table. This is by design — it allows unlimited claims per user. Roles are also in a separate table (AspNetUserRoles) as a junction table."
+
+> "The primary key is a string (GUID) by default. This is what Identity uses — don't change it unless you have a specific reason."
+
+> "Every property you add to ApplicationUser becomes a column in AspNetUsers when you run migrations. Nullable properties become nullable columns. Non-nullable properties become NOT NULL columns."
+
+**Analogy (say this):**
+
+> "Think of ApplicationUser as an employee record. IdentityUser gives you the basic fields — ID, name, email, password. ApplicationUser adds the custom fields — FullName, Department, DateOfBirth. These are like adding columns to the employee table in the HR database. Claims are like stickers on the employee's badge — each sticker is a separate item (department, clearance level, project access) stored on a separate sheet, not written into the employee record itself."
+
+**Common viewer questions:**
+
+> "Can I add an integer Id instead of string?" — Yes, use `IdentityUser<int>`, but it's less common. The tutorial uses string (GUID) because that's Identity's default.
+
+> "What if I need to add 20 custom properties?" — Consider whether they all belong on IdentityUser. If some are large or rarely used, put them in a separate table. IdentityUser should be lean — identity data, not everything about the user.
+
+> "Do I need ApplicationRole if I don't add custom properties?" — No. You can use `IdentityRole` directly. But having a custom class is good practice — it gives you a place to add properties later and makes the code consistent.
+
+**What to show:**
+
+- ApplicationUser class with comments on each property
+- ApplicationRole class with comments
+- The EF Core migration command and output
+- The database tables in a viewer (SQL Server Management Studio, Azure Data Studio, or a visual tool)
+- A comparison: what IdentityUser gives you vs. what ApplicationUser adds
+
+**What to skip:**
+
+- Custom primary key types (int,Guid, etc.) — beyond scope
+- TPH/TPT/TPC inheritance strategies — Identity uses TPH by default; changing it is advanced
+- Shadow properties in EF Core — mention as an alternative for audit fields
+
+---
+
+## Complete Implementation
+
+### File: Models/ApplicationUser.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Models/ApplicationUser.cs
+// Video 05 — Identity Models: Custom User Class
+// ─────────────────────────────────────────────────────────────────────────────
+// ApplicationUser is our custom user class.
+// It inherits from IdentityUser and adds custom properties.
+//
+// Design decisions:
+//   → Inherit from IdentityUser (not implement IUser) — Identity's
+//     UserManager, SignInManager, and stores expect IdentityUser semantics.
+//   → Add only properties that belong on the Users table.
+//   → Keep it lean — don't put everything here.
+//   → Use nullable reference types (string?) for optional properties.
+//
+// HOW TO USE THIS FOR YOUR VIDEO:
+//   - Show the IdentityUser base class properties (what we get for free)
+//   - Show our custom properties (what we add)
+//   - Explain why each custom property is here
+//   - Show the EF Core migration that creates the extra columns
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+
+namespace IdentityApiTutorial.Models
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ApplicationUser — our custom user class for the API.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Inherits from IdentityUser<string>, which gives us:
+    //
+    //   string Id                    — Primary key (GUID stored as string)
+    //   string UserName              — Unique login name
+    //   string NormalizedUserName    — Uppercase version for case-insensitive lookups
+    //   string Email                 — Email address
+    //   string NormalizedEmail       — Uppercase version for case-insensitive lookups
+    //   bool EmailConfirmed          — Whether the email has been verified
+    //   string PasswordHash          — Hashed password (PBKDF2 — NEVER plaintext)
+    //   string SecurityStamp         — Random value; changes when credentials change;
+    //                                 used to invalidate old tokens/JWTs
+    //   string ConcurrencyStamp      — Optimistic concurrency token (changes on each update)
+    //   string? PhoneNumber          — Phone number (nullable)
+    //   bool PhoneNumberConfirmed    — Whether phone is verified
+    //   bool TwoFactorEnabled        — Whether 2FA is enabled for this user
+    //   bool LockoutEnabled          — Whether account lockout is enabled
+    //   DateTimeOffset? LockoutEnd   — When the current lockout expires (null = not locked out)
+    //   int AccessFailedCount        — Number of consecutive failed login attempts
+    //   ICollection<IdentityUserClaim> Claims — Navigation to user's claims
+    //   ICollection<IdentityUserRole> Roles  — Navigation to user's roles
+    //   ICollection<IdentityUserLogin> Logins — Navigation to external logins
+    //   ICollection<IdentityUserToken> Tokens — Navigation to tokens
+    //
+    // We add the following custom properties:
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class ApplicationUser : IdentityUser
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // FullName — the user's display name (first + last name).
+        //   → Nullable (string?) — not required at registration.
+        //   → Becomes a NULLABLE NVARCHAR(256) column in AspNetUsers (by default).
+        //   → Used for display purposes, not for authentication.
+        //   → Why here and not a claim? It's always needed when displaying a user,
+        //     so a column is more efficient than a claim lookup.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? FullName { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Department — the user's department or team.
+        //   → Nullable — not all users belong to a department.
+        //   → Becomes a NULLABLE NVARCHAR(256) column.
+        //   → Could be a claim ("department" claim) instead. We use a column here
+        //     because it's a simple string and we might filter by department.
+        //   → If departments have complex data (head, members, budget), use a
+        //     separate Department entity with a foreign key to ApplicationUser.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? Department { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // DateOfBirth — the user's date of birth.
+        //   → Nullable — not required.
+        //   → Becomes a NULLABLE DATETIME2 column.
+        //   → Used for age-restricted content, personalization, or analytics.
+        //   → Privacy note: only collect this if you need it. Date of birth is
+        //     personal data — handle it accordingly.
+        // ─────────────────────────────────────────────────────────────────────────
+        public DateTime? DateOfBirth { get; set; }
+    }
+}
+```
+
+### File: Models/ApplicationRole.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Models/ApplicationRole.cs
+// Video 05 — Identity Models: Custom Role Class
+// ─────────────────────────────────────────────────────────────────────────────
+// ApplicationRole is our custom role class.
+// It inherits from IdentityRole and adds custom properties.
+//
+// Design decisions:
+//   → Inherit from IdentityRole — enables role management with our custom class.
+//   → Add properties that describe the role (description, created date).
+//   → Keep it lean — roles are simple entities.
+//
+// HOW TO USE THIS FOR YOUR VIDEO:
+//   - Show the IdentityRole base class properties
+//   - Show our custom properties
+//   - Explain why Description and CreatedDate are useful
+//   - Show how roles are created and managed (Video 09)
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+
+namespace IdentityApiTutorial.Models
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ApplicationRole — our custom role class for the API.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Inherits from IdentityRole<string>, which gives us:
+    //
+    //   string Id                  — Primary key (GUID stored as string)
+    //   string Name                — Human-readable role name ("Admin", "User")
+    //   string NormalizedName      — Uppercase version for case-insensitive lookups
+    //   string ConcurrencyStamp    — Optimistic concurrency token
+    //   ICollection<IdentityRoleClaim> Claims — Navigation to role's claims
+    //
+    // We add:
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class ApplicationRole : IdentityRole
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Description — human-readable explanation of what the role allows.
+        //   → Nullable — not all roles need a description.
+        //   → Becomes a NULLABLE NVARCHAR(256) column in AspNetRoles.
+        //   → Useful for admin UIs that show role descriptions when assigning roles.
+        //   → Example: "Admin" → "Full access to all administrative functions"
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? Description { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // CreatedDate — when the role was created.
+        //   → Set to DateTime.UtcNow by default (not nullable).
+        //   → Becomes a DATETIME2 column with a default value.
+        //   → Useful for auditing — you can see when each role was created.
+        //   → Can be set explicitly when creating a role (in Video 09).
+        // ─────────────────────────────────────────────────────────────────────────
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    }
+}
+```
+
+### File: Data/IdentityDbContext.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Data/IdentityDbContext.cs
+// Video 05 — Identity Models: DbContext
+// ─────────────────────────────────────────────────────────────────────────────
+// IdentityDbContext connects Identity to your database via EF Core.
+// It maps ApplicationUser, ApplicationRole, and all Identity entities
+// to database tables.
+//
+// Design decisions:
+//   → Subclass IdentityDbContext<ApplicationUser, ApplicationRole, string>
+//     to use our custom user and role classes.
+//   → Call base.OnModelCreating to let Identity configure its tables.
+//   → Add custom configurations only when needed.
+//
+// HOW TO USE THIS FOR YOUR VIDEO:
+//   - Show the generic parameters (TUser, TRole, TKey)
+//   - Explain that IdentityDbContext already includes all the Identity
+//     DbSets (Users, Roles, Claims, etc.)
+//   - Show the constructor pattern (takes DbContextOptions)
+//   - Show OnModelCreating calling base first
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using IdentityApiTutorial.Models;
+
+namespace IdentityApiTutorial.Data
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // IdentityDbContext — our Identity database context.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Generic parameters:
+    //   TUser = ApplicationUser   — our custom user class
+    //   TRole = ApplicationRole   — our custom role class
+    //   TKey  = string            — primary key type (string = GUID)
+    //
+    // IdentityDbContext<TUser, TRole, TKey> already includes:
+    //   DbSet<TUser> Users
+    //   DbSet<TRole> Roles
+    //   DbSet<IdentityUserClaim<TKey>> UserClaims
+    //   DbSet<IdentityUserRole<TKey>> UserRoles
+    //   DbSet<IdentityUserLogin<TKey>> UserLogins
+    //   DbSet<IdentityUserToken<TKey>> UserTokens
+    //   DbSet<IdentityRoleClaim<TKey>> RoleClaims
+    //
+    // We don't need to add these — they're already there.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class IdentityDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Constructor — takes DbContextOptions<IdentityDbContext>.
+        //   → Options are configured in Program.cs with UseSqlServer and the
+        //     connection string.
+        //   → This is the standard pattern for all EF Core DbContexts.
+        //   → The options include: connection string, provider, behaviors, etc.
+        // ─────────────────────────────────────────────────────────────────────────
+        public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
+            : base(options)
+        {
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // OnModelCreating — customize the EF Core model.
+        //   → Call base.OnModelCreating FIRST — Identity configures its tables,
+        //     relationships, indexes, and constraints.
+        //   → Add custom configurations AFTER the base call.
+        //
+        // Common customizations (not needed for our tutorial, but shown for
+        // reference):
+        //   → Rename a table: builder.Entity<ApplicationUser>().ToTable("MyUsers")
+        //   → Rename a column: builder.Entity<ApplicationUser>()
+        //       .Property(u => u.FullName).HasColumnName("Display_Name")
+        //   → Change column type: builder.Entity<ApplicationUser>()
+        //       .Property(u => u.FullName).HasColumnType("nvarchar(500)")
+        //   → Add an index: builder.Entity<ApplicationUser>()
+        //       .HasIndex(u => u.Department)
+        //   → Configure a relationship: builder.Entity<ApplicationUser>()
+        //       .HasOne<Department>().WithMany().HasForeignKey(u => u.DepartmentId)
+        //
+        // For our tutorial, we call base.OnModelCreating only — Identity's default
+        // configuration is sufficient.
+        // ─────────────────────────────────────────────────────────────────────────
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            // Call the base — Identity configures:
+            //   → AspNetUsers table with all IdentityUser properties
+            //   → AspNetRoles table with all IdentityRole properties
+            //   → AspNetUserRoles junction table
+            //   → AspNetUserClaims table
+            //   → AspNetRoleClaims table
+            //   → AspNetUserLogins table
+            //   → AspNetUserTokens table
+            //   → Indexes on UserName, NormalizedUserName, Email, NormalizedEmail
+            //   → Unique constraints where needed
+            base.OnModelCreating(builder);
+
+            // Custom configurations go here (none needed for this tutorial).
+            // Example: rename the Users table
+            // builder.Entity<ApplicationUser>().ToTable("AppUsers");
+        }
+    }
+}
+```
+
+---
+
+## Postman / Swagger Tests
+
+No testable endpoints yet — this is the models video. But here is what you can verify:
+
+### Verify the Models Compile
+
+1. Build the project: `dotnet build`
+2. Expected: `Build succeeded.` with no errors.
+3. If there are errors, check:
+   - `ApplicationUser` inherits from `IdentityUser` (not `IdentityUser<string>` — the default is string).
+   - `ApplicationRole` inherits from `IdentityRole`.
+   - `IdentityDbContext` inherits from `IdentityDbContext<ApplicationUser, ApplicationRole, string>`.
+   - All necessary `using` statements are present.
+
+### Verify the DbContext Is Registered (in Program.cs)
+
+Check that `Program.cs` has:
+
+```csharp
+builder.Services.AddDbContext<IdentityDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+```
+
+And that `IdentityDbContext` is used in `AddEntityFrameworkStores<IdentityDbContext>()`.
+
+### Swagger Verification
+
+Run the API and navigate to Swagger UI. Verify:
+- The API starts without errors.
+- Swagger UI loads.
+- No endpoints are shown yet (we haven't added any controllers).
+
+---
+
+# Video 06 — Database Setup — IdentityDbContext, Connection Strings, Migrations
+
+## Theory & Definitions
+
+### What We're Doing in This Video
+
+We're setting up the database for Identity:
+1. Configure the connection string in `appsettings.json`.
+2. Create the database (or let EF Core create it).
+3. Run EF Core migrations to create the Identity tables.
+4. Verify the tables exist in the database.
+
+### Connection Strings — What They Are and Why They Matter
+
+A connection string tells EF Core how to connect to the database:
+- **Server** — the database server address (e.g., `localhost`, `.\SQLEXPRESS`, a remote server name).
+- **Database** — the database name (e.g., `IdentityApiDb`).
+- **Authentication** — how to authenticate (Windows Authentication with `Trusted_Connection=True`, or SQL Server authentication with `User Id` and `Password`).
+- **TrustServerCertificate** — for SSL/TLS connections; `True` bypasses certificate validation (useful for local development, not production).
+
+Example (SQL Server with Windows Authentication):
+
+```
+Server=localhost;Database=IdentityApiDb;Trusted_Connection=True;TrustServerCertificate=True;
+```
+
+Example (SQL Server with SQL Authentication):
+
+```
+Server=localhost;Database=IdentityApiDb;User Id=sa;Password=YourPassword;TrustServerCertificate=True;
+```
+
+Example (SQLite):
+
+```
+Data Source=identity.db;
+```
+
+### EF Core Migrations — What They Are
+
+Migrations are a way to incrementally evolve the database schema. Instead of manually writing SQL scripts, you:
+1. Define your models (ApplicationUser, ApplicationRole, IdentityDbContext).
+2. Run `dotnet ef migrations add MigrationName` — EF Core compares your models to the current database state and generates a migration class with `Up()` (apply changes) and `Down()` (revert changes) methods.
+3. Run `dotnet ef database update` — applies the migration to the database.
+
+Each migration is a C# class in the `Migrations/` folder. You can version-control them, review them, and apply them to different environments.
+
+### The Migration Process for Identity
+
+When you run your first migration for Identity:
+1. EF Core scans `IdentityDbContext` and finds all the `DbSet` properties and relationships.
+2. It includes the Identity entities (User, Role, Claims, etc.) because they're part of `IdentityDbContext`.
+3. It generates a migration that creates all the Identity tables: `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetRoleClaims`, `AspNetUserLogins`, `AspNetUserTokens`.
+4. It also includes any custom properties you added (FullName, Department, DateOfBirth on ApplicationUser; Description, CreatedDate on ApplicationRole).
+
+### Installing the EF Core CLI Tools
+
+The `dotnet ef` command is a .NET CLI tool. To use it, you need the `dotnet-ef` tool installed:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+If it's already installed, update it:
+
+```bash
+dotnet tool update --global dotnet-ef
+```
+
+The `Microsoft.EntityFrameworkCore.Tools` package (added to the .csproj) provides design-time services. The `dotnet-ef` global tool provides the CLI command.
+
+### The Commands We Run
+
+```bash
+# Add the initial migration
+dotnet ef migrations add InitialCreate
+
+# Apply the migration to the database
+dotnet ef database update
+
+# (Optional) Check the database was created
+# Open SQL Server Management Studio, Azure Data Studio, or use a CLI tool
+# to verify the IdentityApiDb database exists with the Identity tables.
+```
+
+### What Happens When You Run `dotnet ef database update`
+
+1. EF Core reads the migration history from the database (the `__EFMigrationsHistory` table).
+2. It finds which migrations haven't been applied yet.
+3. It executes the `Up()` method of each pending migration in order.
+4. For `InitialCreate`, this creates all the Identity tables.
+5. It records the migration in `__EFMigrationsHistory`.
+
+### Generating User Secrets (Optional but Recommended for Development)
+
+For the JWT secret key, use user secrets in development:
+
+```bash
+# Set up user secrets for the project
+dotnet user-secrets init
+dotnet user-secrets set "JwtSettings:SecretKey" "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
+dotnet user-secrets set "JwtSettings:Issuer" "IdentityApiTutorial"
+dotnet user-secrets set "JwtSettings:Audience" "IdentityApiTutorialClients"
+dotnet user-secrets set "JwtSettings:ExpirationInMinutes" "60"
+```
+
+User secrets are stored in your user profile (not in the project folder), so they don't get committed to source control.
+
+### Database Providers — Options
+
+| Provider | Package | Connection String Example | Best For |
+|----------|---------|--------------------------|----------|
+| SQL Server | `Microsoft.EntityFrameworkCore.SqlServer` | `Server=localhost;Database=IdentityApiDb;Trusted_Connection=True;TrustServerCertificate=True;` | Production, Windows environments |
+| SQLite | `Microsoft.EntityFrameworkCore.Sqlite` | `Data Source=identity.db;` | Development, testing, small apps |
+| PostgreSQL | `Npgsql.EntityFrameworkCore.PostgreSQL` | `Host=localhost;Database=identityapi;Username=postgres;Password=secret;` | Production, Linux environments |
+| MySQL | `Pomelo.EntityFrameworkCore.MySql` | `Server=localhost;Database=identityapi;User=root;Password=secret;` | Production, cross-platform |
+
+The tutorial uses SQL Server, but all concepts apply to any provider.
+
+### The __EFMigrationsHistory Table
+
+EF Core maintains a table called `__EFMigrationsHistory` that records which migrations have been applied. Each row contains:
+- `MigrationId` — the migration class name (e.g., "20240101120000_InitialCreate").
+- `ProductVersion` — the EF Core version that generated the migration.
+
+This table is automatically created by EF Core. You don't need to manage it manually.
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "Now we connect Identity to a real database. We'll configure the connection string, run EF Core migrations, and create all the Identity tables. This is where Identity becomes real — users, roles, claims, all stored in your database. I'll show you the exact commands to run and what to expect."
+
+**Show on screen:**
+
+> The `appsettings.json` file with the connection string. The `dotnet ef migrations add` and `dotnet ef database update` commands running in the terminal. The database viewer showing the created tables. The `__EFMigrationsHistory` table.
+
+**Key points to emphasize (say this):**
+
+> "The connection string in appsettings.json must match your database server. If you're using SQL Server LocalDB or SQLEXPRESS, adjust the server name. If you're using SQLite, the connection string is completely different."
+
+> "EF Core migrations are incremental — each migration builds on the previous one. You can have multiple migrations over time as your models change. For this tutorial, we create one initial migration that sets up all Identity tables."
+
+> "The `dotnet ef` tool must be installed globally. The `Microsoft.EntityFrameworkCore.Tools` package in your .csproj provides design-time services that the tool uses."
+
+> "After running migrations, verify the tables exist. Open your database viewer and check for AspNetUsers, AspNetRoles, AspNetUserRoles, AspNetUserClaims, AspNetRoleClaims, AspNetUserLogins, AspNetUserTokens, and __EFMigrationsHistory."
+
+**Analogy (say this):**
+
+> "Migrations are like version control for your database schema. Each migration is a snapshot of what changed. `InitialCreate` is the first snapshot — it creates all the tables. Later, if you add a property to ApplicationUser, you create a new migration that alters the table. EF Core tracks which migrations have been applied in the `__EFMigrationsHistory` table — like a commit history for your database."
+
+**Common viewer questions:**
+
+> "Can I create the database manually instead of using migrations?" — Yes, but migrations are the recommended approach. They're version-controlled, repeatable, and work across environments. Manual SQL scripts are error-prone and hard to maintain.
+
+> "What if I get an error about the database already existing?" — If the database exists but has no tables, you can drop it and re-run migrations. If the database has tables from a previous migration, you can add a new migration to alter the schema. In development, dropping and recreating is fine.
+
+> "Do I need to run migrations on the production server?" — Yes. On production, you apply the same migrations that you developed locally. This is typically done as part of the deployment process (e.g., `dotnet ef database update` as a deployment step, or using a CI/CD pipeline).
+
+> "What about the JWT secret key in appsettings.json?" — In development, it's fine to have it in appsettings.json for testing. In production, use environment variables, Azure Key Vault, or user secrets. Never commit production secrets to source control.
+
+**What to show:**
+
+- The `appsettings.json` file with the connection string
+- The `dotnet ef migrations add InitialCreate` command and the generated migration file
+- The `dotnet ef database update` command
+- The database viewer showing all the Identity tables
+- The `__EFMigrationsHistory` table with the migration record
+
+**What to skip:**
+
+- Advanced migration scenarios (data migrations, splitting migrations, custom SQL in migrations)
+- Database sharding, replication, high availability (out of scope)
+- Connection string encryption (mention as a production concern)
+
+---
+
+## Complete Implementation
+
+### File: appsettings.json — Connection String and JWT Settings
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=IdentityApiDb;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+  "JwtSettings": {
+    "SecretKey": "YourSuperSecretKeyThatIsAtLeast32CharactersLong!",
+    "Issuer": "IdentityApiTutorial",
+    "Audience": "IdentityApiTutorialClients",
+    "ExpirationInMinutes": 60
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+**Important notes:**
+
+- Replace `localhost` with your actual SQL Server instance name if needed (e.g., `.\SQLEXPRESS` or `SERVER\SQLEXPRESS`).
+- `TrustServerCertificate=True` is for development only — in production, configure proper SSL/TLS certificate validation.
+- The `SecretKey` must be at least 32 characters (256 bits) for HS256. Replace with a strong, random key.
+- In production, store the `SecretKey` in environment variables or a secrets manager — not in `appsettings.json`.
+
+### Running the EF Core Migrations
+
+**Step 1: Install the EF Core CLI tool (if not already installed)**
+
+```bash
+dotnet tool install --global dotnet-ef
+# Or update if already installed:
+dotnet tool update --global dotnet-ef
+```
+
+**Step 2: Add the initial migration**
+
+```bash
+cd IdentityApiTutorial
+dotnet ef migrations add InitialCreate
+```
+
+This generates a migration file in the `Migrations/` folder. The file name includes a timestamp and the migration name (e.g., `20240101120000_InitialCreate.cs`).
+
+The generated migration includes:
+- `CreateTable` for `AspNetUsers` with all IdentityUser columns + our custom columns (FullName, Department, DateOfBirth).
+- `CreateTable` for `AspNetRoles` with all IdentityRole columns + our custom columns (Description, CreatedDate).
+- `CreateTable` for `AspNetUserRoles`, `AspNetUserClaims`, `AspNetRoleClaims`, `AspNetUserLogins`, `AspNetUserTokens`.
+- `CreateIndex` for UserName, NormalizedUserName, Email, NormalizedEmail on AspNetUsers.
+- `CreateIndex` for Name, NormalizedName on AspNetRoles.
+- `AddForeignKey` for the relationships between tables.
+
+**Step 3: Apply the migration to the database**
+
+```bash
+dotnet ef database update
+```
+
+This:
+- Creates the `IdentityApiDb` database (if it doesn't exist).
+- Creates all the Identity tables.
+- Records the migration in `__EFMigrationsHistory`.
+
+**Step 4: Verify the database**
+
+Open SQL Server Management Studio (SSMS), Azure Data Studio, or your preferred database tool, and connect to your SQL Server instance. Verify:
+
+1. The `IdentityApiDb` database exists.
+2. The following tables exist:
+   - `AspNetUsers` (with columns: Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, LockoutEnd, AccessFailedCount, FullName, Department, DateOfBirth)
+   - `AspNetRoles` (with columns: Id, Name, NormalizedName, ConcurrencyStamp, Description, CreatedDate)
+   - `AspNetUserRoles` (UserId, RoleId)
+   - `AspNetUserClaims` (Id, UserId, ClaimType, ClaimValue)
+   - `AspNetRoleClaims` (Id, RoleId, ClaimType, ClaimValue)
+   - `AspNetUserLogins` (LoginProvider, ProviderKey, ProviderDisplayName, UserId)
+   - `AspNetUserTokens` (UserId, LoginProvider, Name, Value)
+   - `__EFMigrationsHistory` (MigrationId, ProductVersion)
+
+### File: Migrations/20240101120000_InitialCreate.cs (Example)
+
+This file is generated by EF Core — you don't write it manually. Here's what it looks like (abbreviated):
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// This file is GENERATED by EF Core — do not edit manually.
+// ─────────────────────────────────────────────────────────────────────────────
+// It is created by: dotnet ef migrations add InitialCreate
+// It is applied by: dotnet ef database update
+//
+// The Up() method creates the database schema.
+// The Down() method reverts the schema (drops tables).
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.EntityFrameworkCore.Migrations;
+
+namespace IdentityApiTutorial.Migrations
+{
+    /// <inheritdoc />
+    public partial class InitialCreate : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            // Create AspNetUsers table with all IdentityUser columns + custom columns
+            migrationBuilder.CreateTable(
+                name: "AspNetUsers",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    Department = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UserName = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            // Create AspNetRoles table with all IdentityRole columns + custom columns
+            migrationBuilder.CreateTable(
+                name: "AspNetRoles",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    NormalizedName = table.Column<string>(type: "nvarchar(256)", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                });
+
+            // Create junction table for User-Role relationships
+            migrationBuilder.CreateTable(
+                name: "AspNetUserRoles",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            // ... (other tables: AspNetUserClaims, AspNetRoleClaims, AspNetUserLogins, AspNetUserTokens)
+
+            // Create indexes for efficient lookups
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_Email",
+                table: "AspNetUsers",
+                column: "Email");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_NormalizedUserName",
+                table: "AspNetUsers",
+                column: "NormalizedUserName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetRoles_NormalizedName",
+                table: "AspNetRoles",
+                column: "NormalizedName",
+                unique: true);
+
+            // Create __EFMigrationsHistory table
+            migrationBuilder.CreateTable(
+                name: "__EFMigrationsHistory",
+                columns: table => new
+                {
+                    MigrationId = table.Column<string>(type: "nvarchar(150)", nullable: false),
+                    ProductVersion = table.Column<string>(type: "nvarchar(32)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK___EFMigrationsHistory", x => x.MigrationId);
+                });
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            // Drop all tables in reverse order (respecting foreign keys)
+            migrationBuilder.DropTable(name: "__EFMigrationsHistory");
+            migrationBuilder.DropTable(name: "AspNetUserTokens");
+            migrationBuilder.DropTable(name: "AspNetUserLogins");
+            migrationBuilder.DropTable(name: "AspNetRoleClaims");
+            migrationBuilder.DropTable(name: "AspNetUserClaims");
+            migrationBuilder.DropTable(name: "AspNetUserRoles");
+            migrationBuilder.DropTable(name: "AspNetRoles");
+            migrationBuilder.DropTable(name: "AspNetUsers");
+        }
+    }
+}
+```
+
+---
+
+## Postman / Swagger Tests
+
+### Verify the Database Was Created
+
+1. Open SQL Server Management Studio (SSMS) or Azure Data Studio.
+2. Connect to your SQL Server instance (`localhost` or `.\SQLEXPRESS`).
+3. Expand the `Databases` folder — you should see `IdentityApiDb`.
+4. Expand `IdentityApiDb` → `Tables` — you should see all the Identity tables.
+5. Expand the `__EFMigrationsHistory` table — you should see one row with the migration ID.
+
+### Verify the API Still Builds and Runs
+
+1. Build the project: `dotnet build`
+2. Expected: `Build succeeded.`
+3. Run the API: `dotnet run`
+4. Navigate to Swagger UI: `https://localhost:7001/swagger`
+5. Expected: Swagger UI loads without errors.
+
+### Test: Check the Database Connection
+
+1. Create a simple test endpoint (temporarily) that returns the database connection state, or use a health check.
+2. Alternatively, run the API and check the terminal output — if the connection string is wrong, you'll see an error on startup.
+3. Expected: API starts successfully, no database connection errors.
+
+---
+
+# Video 07 — User Registration API — Complete Endpoint
+
+## Theory & Definitions
+
+### What User Registration Does in an API
+
+User registration is the endpoint that creates a new user account. In an API, this is typically:
+
+```
+POST /api/accounts/register
+Content-Type: application/json
+
+{
+  "userName": "ahmad",
+  "password": "Test@1234",
+  "email": "ahmad@example.com",
+  "fullName": "Ahmad Developer"
+}
+```
+
+The API:
+1. Validates the input (model validation — [Required], [StringLength], etc.).
+2. Creates an `ApplicationUser` with the provided data.
+3. Calls `UserManager.CreateAsync(user, password)` — this hashes the password and saves the user to the database.
+4. Returns the created user (without the password hash) with a `201 Created` status.
+
+### The Registration Flow — Step by Step
+
+```
+Client: POST /api/accounts/register { userName, password, email, fullName }
+    ↓
+[Model Validation] → If invalid → 400 Bad Request with validation errors
+    ↓
+AccountsController.Register()
+    ↓
+Create ApplicationUser instance:
+  → UserName = request.UserName
+  → Email = request.Email
+  → FullName = request.FullName
+  → EmailConfirmed = false (by default — user must confirm email)
+    ↓
+UserManager.CreateAsync(user, password)
+    ↓
+  → Password hashed with PBKDF2 (PasswordHasher)
+  → User saved to AspNetUsers table (via IUserStore / EF Core)
+  → IdentityResult returned:
+    → Success: user created
+    → Failed: IdentityError list (password too weak, email not unique, etc.)
+    ↓
+If Success:
+  → Return 201 Created with user data (exclude PasswordHash, SecurityStamp, etc.)
+If Failed:
+  → Return 400 Bad Request with IdentityError messages
+```
+
+### The DTO (Data Transfer Object) Pattern
+
+We use DTOs to separate the API contract from the internal models. The `RegisterRequest` DTO defines what the client sends. The `ApplicationUser` model is what Identity uses internally. We map between them in the controller.
+
+**Why DTOs:**
+
+| Reason | Explanation |
+|--------|-------------|
+| **Decoupling** | The API contract (what the client sends) is separate from the internal model (what Identity uses). You can change the internal model without breaking the API. |
+| **Validation** | DTOs use data annotations ([Required], [StringLength]) for model validation. IdentityUser doesn't have these annotations. |
+| **Security** | You control what data is exposed. The response DTO excludes sensitive fields (PasswordHash, SecurityStamp, etc.). |
+| **Clarity** | The DTO clearly defines what the endpoint expects and returns. |
+
+### Password Hashing — What Happens Inside CreateAsync
+
+When you call `UserManager.CreateAsync(user, password)`:
+
+1. Identity's `PasswordHasher` hashes the password using PBKDF2 (Password-Based Key Derivation Function 2) with a random salt.
+2. The hash is stored in `user.PasswordHash` as a string (Base64 encoded).
+3. The user is saved to the database with the hashed password.
+4. The original plaintext password is **never stored** — only the hash.
+
+**What PBKDF2 does:**
+
+```
+Input: password (plaintext), salt (random bytes), iterations (10,000+)
+Output: hash (derived key)
+
+The salt ensures that the same password produces different hashes for different users.
+The iterations make brute-force attacks expensive (each guess requires 10,000+ iterations).
+```
+
+When the user logs in, Identity uses the same salt (stored with the hash) and the same iterations to hash the provided password and compares it to the stored hash.
+
+### Email Confirmation — Why It's False by Default
+
+When a user registers, `EmailConfirmed` is `false` by default. This means:
+- The user exists in the database.
+- The user cannot log in until they confirm their email (if you enforce this).
+- You send a confirmation email with a token.
+- The user clicks the link, and you call `UserManager.ConfirmEmailAsync(user, token)`.
+
+**For the tutorial**, we don't enforce email confirmation for login (we allow login even if email is not confirmed). In production, you would typically require email confirmation before allowing login.
+
+### The Registration Response
+
+A successful registration returns:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "userName": "ahmad",
+    "email": "ahmad@example.com",
+    "fullName": "Ahmad Developer",
+    "emailConfirmed": false,
+    "createdAt": "2024-01-01T12:00:00Z"
+  },
+  "message": "User registered successfully."
+}
+```
+
+The response excludes:
+- `passwordHash` — never send the password hash to the client.
+- `securityStamp` — internal use only.
+- `concurrencyStamp` — internal use only.
+- `accessFailedCount` — internal use only.
+- Any other sensitive/internal fields.
+
+### Error Responses
+
+If registration fails, the API returns:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Registration failed.",
+  "errors": {
+    "Password": ["Passwords must be at least 8 characters."],
+    "Email": ["A user with that email already exists."],
+    "UserName": ["User name 'ahmad' is already taken."]
+  }
+}
+```
+
+The errors come from `IdentityResult.Errors` — each `IdentityError` has a `Description` that explains what went wrong.
+
+### Common Registration Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Passwords must be at least {n} characters." | Password too short | Enter a longer password |
+| "Passwords must contain at least one digit." | No digit in password | Add a digit (0-9) |
+| "Passwords must contain at least one uppercase character." | No uppercase letter | Add an uppercase letter (A-Z) |
+| "Passwords must contain at least one lowercase character." | No lowercase letter | Add a lowercase letter (a-z) |
+| "Passwords must contain at least one non-alphanumeric character." | No special character | Add a special character (!, @, #, etc.) |
+| "A user with that email already exists." | Email is not unique | Use a different email |
+| "User name 'xyz' is already taken." | UserName is not unique | Use a different UserName |
+| "NamePasswordMismatch" | (Rare) password validation failed | Check password against all rules |
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "This is the first real endpoint we build — user registration. We'll create a POST endpoint that takes a username, password, email, and full name, validates the input, creates the user with a hashed password, and saves it to the database. I'll show you the DTO, the controller, the service call, and exactly what happens to the password."
+
+**Show on screen:**
+
+> The `RegisterRequest` DTO with data annotations. The `AccountsController.Register` method, line by line. The `UserManager.CreateAsync` call. The Postman request and response. The database viewer showing the new user in AspNetUsers (with the hashed password, not plaintext).
+
+**Key points to emphasize (say this):**
+
+> "Use DTOs for your API contracts — RegisterRequest for input, UserResponse for output. Never expose IdentityUser directly — it has sensitive fields like PasswordHash that should never leave the API."
+
+> "UserManager.CreateAsync does two things: it hashes the password (PBKDF2 with salt) and saves the user to the database. You pass the plaintext password, and Identity handles the hashing. You never hash the password yourself."
+
+> "Model validation happens automatically with [ApiController]. If the DTO has [Required] and the client doesn't send it, you get a 400 Bad Request automatically. You don't need to write validation code for required fields."
+
+> "The response excludes sensitive data. PasswordHash, SecurityStamp, ConcurrencyStamp — these stay on the server. The client gets back only what it needs: ID, UserName, Email, FullName."
+
+> "IdentityResult tells you if the operation succeeded. If it failed, the Errors collection tells you why. Always check IdentityResult and return the errors to the client."
+
+**Analogy (say this):**
+
+> "Registration is like applying for a library card. You fill out a form (RegisterRequest DTO) with your name, email, and a password. The librarian (UserManager.CreateAsync) checks that the form is valid, creates a record in the database, and gives you a card (the response with your user ID). The password is like your PIN — it's stored as a hash, not written down. If you forget your PIN, you can reset it (Video 17), but the librarian never sees your actual PIN — only the hash."
+
+**Common viewer questions:**
+
+> "Why not use IdentityUser directly in the controller?" — Because IdentityUser has sensitive properties (PasswordHash, SecurityStamp) that should never be sent to the client. DTOs give you control over what's exposed.
+
+> "What if I want to require email confirmation before login?" — Set `options.SignIn.RequireConfirmedEmail = true` in the Identity options. Then `CheckPasswordSignInAsync` will fail with `IsNotAllowed` if the email is not confirmed. You'd also need to send confirmation emails (Video 17).
+
+> "Can I add more fields to registration (phone, birth date, etc.)?" — Yes. Add them to the RegisterRequest DTO, map them to ApplicationUser in the controller, and they'll be saved to the database. The migration already has the columns (we added DateOfBirth in Video 05).
+
+> "What if the password is too weak?" — Identity's PasswordOptions validation fails, and CreateAsync returns an IdentityError. We catch that and return it to the client. The client can then prompt the user to choose a stronger password.
+
+**What to show:**
+
+- The RegisterRequest DTO
+- The UserResponse DTO
+- The AccountsController.Register method (full, with comments)
+- The Postman request (POST /api/accounts/register with JSON body)
+- The Postman response (201 Created with user data)
+- The database viewer showing the new user (with hashed password)
+- A failed registration (e.g., password too short) showing the error response
+
+**What to skip:**
+
+- Email confirmation flow (covered in Video 17 — keep it simple for now)
+- External registration (social login — covered in Video 16)
+- Admin-created users (covered in Video 19 / admin endpoints)
+
+---
+
+## Complete Implementation
+
+### File: DTOs/RegisterRequest.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/RegisterRequest.cs
+// Video 07 — User Registration: Register Request DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the client sends to the registration endpoint.
+// It uses data annotations for model validation.
+//
+// [ApiController] automatically validates this and returns 400 if invalid.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using System.ComponentModel.DataAnnotations;
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // RegisterRequest — the request body for POST /api/accounts/register.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → UserName: the unique login name (required, with length and character constraints)
+    //   → Email: the user's email address (required, must be valid email format)
+    //   → Password: the user's password (required, with minimum length for UX guidance)
+    //   → FullName: optional display name (not required, mapped to ApplicationUser.FullName)
+    //
+    // Data annotations:
+    //   → [Required]: the field must be present (not null, not empty)
+    //   → [StringLength]: maximum length (and optional minimum)
+    //   → [EmailAddress]: validates that the value is a valid email format
+    //   → [RegularExpression]: validates against a pattern
+    //
+    // Note: Password validation (digit, uppercase, etc.) is done by Identity's
+    // PasswordOptions, NOT by data annotations on this DTO. The DTO's
+    // [StringLength] is just a UX guideline — the real enforcement is in Identity.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class RegisterRequest
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // UserName — the unique login name for the user.
+        //   → [Required]: must be provided.
+        //   → [StringLength(50, MinimumLength = 3)]: between 3 and 50 characters.
+        //   → [RegularExpression]: allows letters, numbers, and certain special
+        //     characters (@, ., -, _). This matches Identity's
+        //     AllowedUserNameCharacters configuration.
+        //   → Why these constraints? They match what Identity expects and prevent
+        //     invalid user names from reaching UserManager.CreateAsync.
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "User name is required.")]
+        [StringLength(50, MinimumLength = 3,
+            ErrorMessage = "User name must be between 3 and 50 characters.")]
+        [RegularExpression(@"^[a-zA-Z0-9@.\-_]+$",
+            ErrorMessage = "User name can only contain letters, numbers, and @ . - _ characters.")]
+        public string UserName { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Email — the user's email address.
+        //   → [Required]: must be provided.
+        //   → [EmailAddress]: validates email format (e.g., user@example.com).
+        //   → [StringLength(256)]: max 256 characters (matches Identity's default).
+        //   → Why validate email format here? To give the client immediate feedback
+        //     before the request reaches Identity. Identity also validates email
+        //     uniqueness, but format validation is a UX improvement.
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Please provide a valid email address.")]
+        [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters.")]
+        public string Email { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Password — the user's password.
+        //   → [Required]: must be provided.
+        //   → [StringLength(100, MinimumLength = 8)]: between 8 and 100 characters.
+        //   → Why MinimumLength = 8? This is a UX guideline that matches our
+        //     PasswordOptions.RequiredLength. If the client sends a shorter password,
+        //     they get an early error instead of waiting for Identity validation.
+        //   → The actual password rules (digit, uppercase, etc.) are enforced by
+        //     Identity's PasswordOptions in Program.cs — not by this DTO.
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "Password is required.")]
+        [StringLength(100, MinimumLength = 8,
+            ErrorMessage = "Password must be between 8 and 100 characters.")]
+        public string Password { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // FullName — the user's display name (optional).
+        //   → No [Required] — it's optional.
+        //   → [StringLength(100)]: max 100 characters if provided.
+        //   → Mapped to ApplicationUser.FullName in the controller.
+        //   → If not provided, ApplicationUser.FullName remains null.
+        // ─────────────────────────────────────────────────────────────────────────
+        [StringLength(100, ErrorMessage = "Full name cannot exceed 100 characters.")]
+        public string? FullName { get; set; }
+    }
+}
+```
+
+### File: DTOs/UserResponse.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/UserResponse.cs
+// Video 07 — User Registration: User Response DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the API returns to the client after registration.
+// It excludes sensitive data (PasswordHash, SecurityStamp, etc.).
+//
+// We use this DTO for all user responses — registration, login, profile, etc.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // UserResponse — the response body for user-related endpoints.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → Id: the user's unique identifier (GUID as string).
+    //   → UserName: the user's login name.
+    //   → Email: the user's email address.
+    //   → FullName: the user's display name (nullable — may be null if not set).
+    //   → EmailConfirmed: whether the email has been verified.
+    //   → CreatedAt: when the user was created (we set this ourselves, not from
+    //     Identity — Identity doesn't track creation date by default).
+    //
+    // What's NOT included (by design):
+    //   → PasswordHash: never send this — it's sensitive.
+    //   → SecurityStamp: internal use only.
+    //   → ConcurrencyStamp: internal use only.
+    //   → AccessFailedCount: internal use only.
+    //   → LockoutEnd: internal use only.
+    //   → PhoneNumber, TwoFactorEnabled, etc.: we can add these later if needed.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class UserResponse
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Id — the user's unique identifier.
+        //   → This is the primary key from the database (GUID as string).
+        //   → The client can use this to reference the user in other requests
+        //     (e.g., assigning roles to this user).
+        // ─────────────────────────────────────────────────────────────────────────
+        public string Id { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // UserName — the user's login name.
+        //   → This is what the user uses to log in.
+        //   → It's unique across all users (enforced by Identity).
+        // ─────────────────────────────────────────────────────────────────────────
+        public string UserName { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Email — the user's email address.
+        //   → This is used for email confirmation and password reset flows.
+        //   → It's unique if RequireUniqueEmail is set (which we did in Program.cs).
+        // ─────────────────────────────────────────────────────────────────────────
+        public string Email { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // FullName — the user's display name (nullable).
+        //   → May be null if the user didn't provide one at registration.
+        //   → Displayed in UIs instead of UserName for a friendlier experience.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? FullName { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // EmailConfirmed — whether the email has been verified.
+        //   → False by default (user must confirm email to set this to true).
+        //   → Used to determine if the user can log in (if we enforce confirmation).
+        // ─────────────────────────────────────────────────────────────────────────
+        public bool EmailConfirmed { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // CreatedAt — when the user was created.
+        //   → We set this to DateTime.UtcNow when creating the user.
+        //   → Identity doesn't track this by default — we add it for auditing/UX.
+        //   → Alternative: add a CreatedDate column to ApplicationUser and have
+        //     EF Core set it automatically with a default value.
+        // ─────────────────────────────────────────────────────────────────────────
+        public DateTime CreatedAt { get; set; }
+    }
+}
+```
+
+### File: DTOs/ApiResponse.cs — Standardized Response Wrapper
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/ApiResponse.cs
+// Video 07 — User Registration: Standardized API Response Wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+// Every endpoint returns this wrapper for consistency.
+//
+// Success response:
+//   { "success": true, "data": {...}, "message": null, "errors": null }
+//
+// Error response:
+//   { "success": false, "data": null, "message": "Error description",
+//     "errors": { "PropertyName": ["Error 1", "Error 2"] } }
+//
+// This is NOT the default ASP.NET Core problem details format.
+// We use this custom format for consistency across all endpoints.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ApiResponse<T> — standardized wrapper for all API responses.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Generic type T is the data type (UserResponse, LoginResponse, etc.).
+    // For error responses with no data, we use ApiResponse<object> or
+    // ApiResponse with T = null.
+    //
+    // Properties:
+    //   → Success: true for success, false for error.
+    //   → Data: the response data (populated on success, null on error).
+    //   → Message: a human-readable message (optional, for both success and error).
+    //   → Errors: a dictionary of property-name → error-messages (populated on
+    //     validation errors or IdentityErrors).
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class ApiResponse<T>
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Success — indicates whether the operation succeeded.
+        //   → true: the request was processed successfully.
+        //   → false: the request failed (validation error, IdentityError, etc.).
+        // ─────────────────────────────────────────────────────────────────────────
+        public bool Success { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Data — the response payload.
+        //   → On success: the requested data (user, token, etc.).
+        //   → On error: null (no data to return).
+        // ─────────────────────────────────────────────────────────────────────────
+        public T? Data { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Message — a human-readable message.
+        //   → On success: "User registered successfully." or null.
+        //   → On error: "Registration failed." or the specific error description.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string? Message { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Errors — validation errors or IdentityErrors, keyed by property name.
+        //   → On validation errors: { "Password": ["Passwords must be at least 8 characters."] }
+        //   → On IdentityErrors: { "Password": ["Passwords must contain a digit."] }
+        //   → On success: null.
+        // ─────────────────────────────────────────────────────────────────────────
+        public Dictionary<string, string[]>? Errors { get; set; }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Non-generic ApiResponse for error responses without data.
+    // Convenience type so we don't have to write ApiResponse<object> everywhere.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class ApiResponse : ApiResponse<object>
+    {
+    }
+}
+```
+
+### File: Controllers/AccountsController.cs — Register Endpoint
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Controllers/AccountsController.cs
+// Video 07 — User Registration: Complete Controller
+// ─────────────────────────────────────────────────────────────────────────────
+// This controller handles user account operations:
+//   → Register (POST /api/accounts/register)
+//   → Login (POST /api/accounts/login) — Video 08
+//   → Profile (GET /api/accounts/me) — Video 07 (partial)
+//   → Update Profile (PUT /api/accounts/me) — Video 07 (partial)
+//   → Forgot Password (POST /api/accounts/forgot-password) — Video 17
+//   → Reset Password (POST /api/accounts/reset-password) — Video 17
+//   → Confirm Email (POST /api/accounts/confirm-email) — Video 17
+//
+// For Video 07, we implement Register and a basic GetMe endpoint.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using IdentityApiTutorial.DTOs;
+using IdentityApiTutorial.Models;
+using IdentityApiTutorial.Services;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace IdentityApiTutorial.Controllers
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [ApiController] — enables API-specific behaviors:
+    //   → Automatic model validation (returns 400 if the DTO is invalid).
+    //   → Binding source inference ([FromBody] for complex types, [FromQuery] for
+    //     simple types, etc.).
+    //   → Problem details for error responses (consistent JSON format).
+    //   → 400 on unbound parameters (if a parameter can't be bound, return 400).
+    // ─────────────────────────────────────────────────────────────────────────────
+    [ApiController]
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [Route("api/[controller]")] — sets the URL prefix for all actions.
+    //   → [controller] resolves to "Accounts" (from AccountsController).
+    //   → Full route for Register: POST /api/accounts/register
+    //   → Full route for Login: POST /api/accounts/login
+    //   → Full route for GetMe: GET /api/accounts/me
+    // ─────────────────────────────────────────────────────────────────────────────
+    [Route("api/[controller]")]
+    public class AccountsController : ControllerBase
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // _userManager — primary service for user operations.
+        //   → Injected by DI (registered by AddIdentityCore in Program.cs).
+        //   → Used for: CreateAsync, FindByNameAsync, FindByEmailAsync,
+        //     UpdateAsync, DeleteAsync, AddClaimAsync, AddToRoleAsync, etc.
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // _jwtService — our custom service for generating JWT tokens.
+        //   → Injected by DI (registered in Program.cs).
+        //   → Used for: GenerateJwtToken(user) — creates a JWT with user claims.
+        //   → Used in the Login endpoint (Video 08).
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly JwtService _jwtService;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Constructor — ASP.NET Core DI injects all dependencies.
+        //   → UserManager and JwtService are resolved from the DI container.
+        //   → This controller is created per request (scoped).
+        // ─────────────────────────────────────────────────────────────────────────
+        public AccountsController(
+            UserManager<ApplicationUser> userManager,
+            JwtService jwtService)
+        {
+            _userManager = userManager;
+            _jwtService = jwtService;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // POST /api/accounts/register — Register a new user
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Request body: { "userName": "...", "password": "...", "email": "...",
+        //                "fullName": "..." }
+        // Response: 201 Created with UserResponse (on success)
+        //           400 Bad Request with ApiResponse errors (on failure)
+        // ─────────────────────────────────────────────────────────────────────────────
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Create an ApplicationUser from the request.
+            //   → Map the DTO properties to the ApplicationUser properties.
+            //   → UserName comes from request.UserName.
+            //   → Email comes from request.Email.
+            //   → FullName comes from request.FullName (nullable — may be null).
+            //   → EmailConfirmed is false by default (user must confirm email to
+            //     set this to true — we don't enforce this for the tutorial).
+            //   → SecurityStamp and ConcurrencyStamp are set by Identity automatically
+            //     when the user is created (don't set them here).
+            // ─────────────────────────────────────────────────────────────────────────
+            var user = new ApplicationUser
+            {
+                UserName = request.UserName,
+                Email = request.Email,
+                FullName = request.FullName,
+                EmailConfirmed = false  // User must confirm email (if we enforce it)
+            };
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Call UserManager.CreateAsync to create the user.
+            //   → This is the key Identity call — it does several things:
+            //     1. Validates the password against PasswordOptions rules
+            //        (length, digit, uppercase, lowercase, non-alphanumeric).
+            //     2. Hashes the password using PBKDF2 (PasswordHasher).
+            //        The hash includes a random salt — different for each user.
+            //     3. Sets user.SecurityStamp to a new random value.
+            //     4. Sets user.ConcurrencyStamp to a new random value.
+            //     5. Saves the user to the database (via IUserStore / EF Core).
+            //        This inserts a row into AspNetUsers.
+            //   → Returns Task<IdentityResult>:
+            //     → Success: IdentityResult.Success (user was created).
+            //     → Failed: IdentityResult with Errors (list of IdentityError).
+            //   → The password parameter is the PLAINTEXT password from the request.
+            //     Identity hashes it internally — we never hash it ourselves.
+            // ─────────────────────────────────────────────────────────────────────────
+            var result = await _userManager.CreateAsync(user, request.Password);
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Check the result.
+            //   → If Success: create the response and return 201 Created.
+            //   → If Failed: create an error response with the IdentityErrors and
+            //     return 400 Bad Request.
+            // ─────────────────────────────────────────────────────────────────────────
+            if (result.Succeeded)
+            {
+                // ─────────────────────────────────────────────────────────────────────────
+                // Success: create the UserResponse.
+                //   → Map the ApplicationUser properties to UserResponse.
+                //   → Exclude sensitive fields (PasswordHash, SecurityStamp, etc.).
+                //   → Include CreatedAt (set to DateTime.UtcNow — the time of creation).
+                // ─────────────────────────────────────────────────────────────────────────
+                var response = new UserResponse
+                {
+                    Id = user.Id,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    EmailConfirmed = user.EmailConfirmed,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                // ─────────────────────────────────────────────────────────────────────────
+                // Return 201 Created.
+                //   → 201 Created indicates the resource was created.
+                //   → The response body is the ApiResponse<UserResponse> with
+                //     Success = true, Data = response, Message = "User registered successfully."
+                //   → In a REST API, you might also return a Location header with
+                //     the URL of the created resource. For simplicity, we return
+                //     the data directly.
+                // ─────────────────────────────────────────────────────────────────────────
+                return Ok(new ApiResponse<UserResponse>
+                {
+                    Success = true,
+                    Data = response,
+                    Message = "User registered successfully."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Failure: create an error response from the IdentityErrors.
+            //   → result.Errors is a collection of IdentityError objects.
+            //   → Each IdentityError has:
+            //     → Code: a machine-readable error code (e.g., "PasswordTooShort").
+            //     → Description: a human-readable error message (e.g.,
+            //       "Passwords must be at least 8 characters.").
+            //   → We group errors by property name for the client.
+            //   → The client can use these to show field-specific error messages.
+            // ─────────────────────────────────────────────────────────────────────────
+            var errors = new Dictionary<string, string[]>();
+
+            foreach (var error in result.Errors)
+            {
+                // Determine which property this error is for.
+                // IdentityError descriptions often mention the property name.
+                // We use a simple heuristic: if the description mentions "Password",
+                // we group it under "Password". Otherwise, we use a general key.
+                //
+                // A more sophisticated approach would parse the error Code
+                // (e.g., "PasswordTooShort" → "Password").
+                string propertyName = "General";
+
+                if (error.Description.Contains("Password", StringComparison.OrdinalIgnoreCase))
+                {
+                    propertyName = "Password";
+                }
+                else if (error.Description.Contains("Email", StringComparison.OrdinalIgnoreCase))
+                {
+                    propertyName = "Email";
+                }
+                else if (error.Description.Contains("User name", StringComparison.OrdinalIgnoreCase))
+                {
+                    propertyName = "UserName";
+                }
+
+                // Add the error to the dictionary.
+                // If the property already exists, add to the existing array.
+                if (errors.ContainsKey(propertyName))
+                {
+                    var existing = errors[propertyName];
+                    errors[propertyName] = existing.Append(error.Description).ToArray();
+                }
+                else
+                {
+                    errors[propertyName] = new[] { error.Description };
+                }
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Return 400 Bad Request with the error response.
+            //   → 400 Bad Request indicates the request was invalid.
+            //   → The response body contains the errors grouped by property.
+            //   → The client can use these to show field-specific error messages.
+            // ─────────────────────────────────────────────────────────────────────────
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Data = null,
+                Message = "Registration failed. Please correct the errors below.",
+                Errors = errors
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GET /api/accounts/me — Get the current user's profile
+        // ═══════════════════════════════════════════════════════════════════════════
+        // This endpoint requires authentication (JWT token).
+        // It returns the profile of the currently authenticated user.
+        //
+        // We add [Authorize] to require a valid JWT token.
+        // The user's ID is extracted from the JWT claims (ClaimTypes.NameIdentifier).
+        //
+        // For Video 07, this is a simple endpoint that shows how to:
+        //   → Require authentication ([Authorize])
+        //   → Get the current user's ID from claims
+        //   → Look up the user with UserManager.FindByIdAsync
+        //   → Return the user data (excluding sensitive fields)
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize]  // Requires a valid JWT token
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Get the current user's ID from the JWT claims.
+            //   → When the JwtBearer middleware validates the JWT token, it creates
+            //     a ClaimsPrincipal and sets HttpContext.User.
+            //   → The user's ID is stored in the "sub" (subject) claim, which maps
+            //     to ClaimTypes.NameIdentifier in .NET.
+            //   → User.FindFirstValue(ClaimTypes.NameIdentifier) gets the user ID
+            //     from the claims.
+            //   → If the user is not authenticated (no valid JWT), this returns null,
+            //     but [Authorize] already prevents unauthenticated requests from
+            //     reaching this method (returns 401).
+            // ─────────────────────────────────────────────────────────────────────────
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Look up the user by ID.
+            //   → UserManager.FindByIdAsync(userId) queries the database for the
+            //     user with the given ID.
+            //   → Returns Task<ApplicationUser?> (nullable — user may not exist).
+            //   → If the user doesn't exist, we return 404 Not Found.
+            // ─────────────────────────────────────────────────────────────────────────
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = "User not found."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Return the user data (excluding sensitive fields).
+            //   → Map ApplicationUser to UserResponse.
+            //   → Exclude PasswordHash, SecurityStamp, etc.
+            // ─────────────────────────────────────────────────────────────────────────
+            var response = new UserResponse
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                FullName = user.FullName,
+                EmailConfirmed = user.EmailConfirmed,
+                CreatedAt = DateTime.UtcNow  // In a real app, store CreatedAt on the user
+            };
+
+            return Ok(new ApiResponse<UserResponse>
+            {
+                Success = true,
+                Data = response,
+                Message = null
+            });
+        }
+    }
+}
+```
+
+---
+
+## Postman / Swagger Tests
+
+### Test 1: Successful Registration
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/register
+Content-Type: application/json
+
+{
+  "userName": "ahmad",
+  "password": "Test@1234",
+  "email": "ahmad@example.com",
+  "fullName": "Ahmad Developer"
+}
+```
+
+**Expected Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "userName": "ahmad",
+    "email": "ahmad@example.com",
+    "fullName": "Ahmad Developer",
+    "emailConfirmed": false,
+    "createdAt": "2024-01-01T12:00:00Z"
+  },
+  "message": "User registered successfully."
+}
+```
+
+**Verification:**
+- The response has `success: true`.
+- The `data` contains the user's ID, UserName, Email, FullName, EmailConfirmed, and CreatedAt.
+- The `data` does NOT contain PasswordHash, SecurityStamp, or any sensitive fields.
+- Save the `id` to use in later tests (role assignment, etc.).
+
+### Test 2: Registration with Weak Password
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/register
+Content-Type: application/json
+
+{
+  "userName": "weakuser",
+  "password": "123456",
+  "email": "weak@example.com",
+  "fullName": "Weak User"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Registration failed. Please correct the errors below.",
+  "errors": {
+    "Password": [
+      "Passwords must be at least 8 characters.",
+      "Passwords must contain at least one digit ('0'-'9').",
+      "Passwords must contain at least one uppercase ('A'-'Z') character.",
+      "Passwords must contain at least one lowercase ('a'-'z') character.",
+      "Passwords must contain at least one non-alphanumeric character."
+    ]
+  }
+}
+```
+
+**Verification:**
+- The response has `success: false`.
+- The `errors` object contains a "Password" key with an array of error messages.
+- Each error message describes a specific password rule that was violated.
+- The user was NOT created (check the database — no new row in AspNetUsers).
+
+### Test 3: Registration with Duplicate Email
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/register
+Content-Type: application/json
+
+{
+  "userName": "anotheruser",
+  "password": "Test@1234",
+  "email": "ahmad@example.com",
+  "fullName": "Another User"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Registration failed. Please correct the errors below.",
+  "errors": {
+    "Email": [
+      "A user with that email already exists."
+    ]
+  }
+}
+```
+
+**Verification:**
+- The error is grouped under "Email".
+- The message indicates the email is already in use.
+- The user was NOT created.
+
+### Test 4: Registration with Missing Required Fields
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/register
+Content-Type: application/json
+
+{
+  "userName": "nouser",
+  "password": "Test@1234"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "One or more validation errors occurred.",
+  "errors": {
+    "Email": ["Email is required."]
+  }
+}
+```
+
+**Verification:**
+- This is a model validation error (not an IdentityError).
+- [ApiController] automatically returns 400 for validation errors.
+- The error is under "Email" because Email is [Required] and was not provided.
+- Note: This response format may differ from our custom ApiResponse format — [ApiController] uses the default problem details format for model validation errors. To use our custom format, we'd need to customize the error handler (covered in Video 19 / production readiness).
+
+### Test 5: Get Current User Profile (Requires Authentication)
+
+**Request:**
+```
+GET https://localhost:7001/api/accounts/me
+Authorization: Bearer <token>
+```
+
+**Note:** This requires a valid JWT token. We'll get one in Video 08 (Login). For now, the endpoint returns 401 Unauthorized without a token.
+
+**Expected Response (200 OK) — after login:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "userName": "ahmad",
+    "email": "ahmad@example.com",
+    "fullName": "Ahmad Developer",
+    "emailConfirmed": false,
+    "createdAt": "2024-01-01T12:00:00Z"
+  },
+  "message": null
+}
+```
+
+### Test 6: Get Current User Profile Without Token
+
+**Request:**
+```
+GET https://localhost:7001/api/accounts/me
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Unauthorized",
+  "status": 401,
+  "traceId": "00-abc123def456..."
+}
+```
+
+**Verification:**
+- [Authorize] attribute returns 401 when no valid JWT token is provided.
+- The response is the default ASP.NET Core problem details format (not our custom ApiResponse format — this is because the authorization middleware returns the default format; we can customize this later).
+
+### Swagger Tests
+
+1. Run the API and navigate to `https://localhost:7001/swagger`.
+2. Find the `POST /api/accounts/register` endpoint.
+3. Click "Try it out".
+4. Enter the request body:
+   ```json
+   {
+     "userName": "swaggeruser",
+     "password": "Test@1234",
+     "email": "swagger@example.com",
+     "fullName": "Swagger User"
+   }
+   ```
+5. Click "Execute".
+6. Expected: `201 Created` with the user response.
+7. Find the `GET /api/accounts/me` endpoint.
+8. Click "Try it out".
+9. Expected: `401 Unauthorized` (no token provided).
+10. Click the "Authorize" button at the top of Swagger UI.
+11. Enter a JWT token (we'll get one in Video 08).
+12. Try `GET /api/accounts/me` again — expected: `200 OK` with the user profile.
+
+---
+
+# Video 08 — Login API — JWT Token Issuance
+
+## Theory & Definitions
+
+### What Login Does in an API
+
+Login is the endpoint that verifies a user's credentials (username + password) and, if valid, issues a JWT token. The client then uses this token to authenticate subsequent requests.
+
+```
+POST /api/accounts/login
+Content-Type: application/json
+
+{
+  "userName": "ahmad",
+  "password": "Test@1234"
+}
+```
+
+The API:
+1. Finds the user by UserName (or Email, depending on your design).
+2. Calls `SignInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true)`.
+3. If the password is correct and the account is not locked out, returns a JWT token.
+4. If the password is wrong or the account is locked out, returns an error.
+
+### The Login Flow — Step by Step
+
+```
+Client: POST /api/accounts/login { userName, password }
+    ↓
+[Model Validation] → If invalid → 400 Bad Request
+    ↓
+AccountsController.Login()
+    ↓
+UserManager.FindByNameAsync(userName)
+    ↓
+  → If user not found → return failure (don't reveal "user not found" vs "wrong password"
+    — for security, return the same error for both)
+    ↓
+SignInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true)
+    ↓
+  → Password verified against hash (PasswordHasher compares hashes)
+  → Lockout checked (AccessFailedCount, LockoutEnd, LockoutEnabled)
+  → SignInResult returned:
+    → Succeeded: password is correct, account is not locked out
+    → IsLockedOut: account is locked out (too many failed attempts)
+    → IsNotAllowed: account is not allowed to sign in (e.g., email not confirmed)
+    → Failed: password is wrong
+    ↓
+If Succeeded:
+  → JwtService.GenerateJwtToken(user) → creates JWT with claims
+  → Return 200 OK with { token, expiresIn, user }
+If Failed / IsLockedOut / IsNotAllowed:
+  → Return 401 Unauthorized with appropriate error message
+```
+
+### CheckPasswordSignInAsync vs. PasswordSignInAsync
+
+| Method | Behavior | Use in API? |
+|--------|----------|-------------|
+| `CheckPasswordSignInAsync(user, password, lockoutOnFailure)` | Verifies the password and returns a `SignInResult` **without** signing the user in (no cookie, no session). | ✅ Yes — this is what we use in the API. |
+| `PasswordSignInAsync(userName, password, isPersistent, lockoutOnFailure)` | Verifies the password and **signs the user in** (creates a cookie). | ❌ No — this creates a cookie, which is MVC/Razor Pages behavior. |
+| `SignInAsync(user, isPersistent, authenticationMethod)` | Signs the user in (creates a cookie). | ❌ No — cookie-based, not API-friendly. |
+
+**Why CheckPasswordSignInAsync:**
+
+In an API, we don't want to create a cookie or establish a server-side session. We want to:
+1. Verify the password.
+2. If correct, generate a JWT token.
+3. Return the token to the client.
+4. The client includes the token in future requests.
+
+`CheckPasswordSignInAsync` does step 1 without doing steps 2-4 (those are cookie-based). It gives us a `SignInResult` that we can use to decide whether to issue a token.
+
+### The SignInResult — What It Tells You
+
+`SignInResult` has these properties:
+
+| Property | Type | Meaning |
+|----------|------|---------|
+| `Succeeded` | `bool` | True if the password is correct and the account is allowed to sign in. |
+| `IsLockedOut` | `bool` | True if the account is locked out (too many failed attempts). |
+| `IsNotAllowed` | `bool` | True if the account is not allowed to sign in (e.g., email not confirmed, phone not confirmed). |
+| `HardwareTokenSupported` | `bool` | True if a hardware token (e.g., FIDO2) is supported. |
+| `Token` | `string?` | The sign-in token (for external logins). |
+
+We check `result.Succeeded` to determine if we should issue a JWT token.
+
+### Lockout — How It Works
+
+When `lockoutOnFailure: true` is passed to `CheckPasswordSignInAsync`:
+
+1. If the password is **wrong**, Identity increments `AccessFailedCount` on the user.
+2. If `AccessFailedCount` reaches `MaxFailedAccessAttempts` (5, configured in Program.cs), the account is locked out:
+   - `LockoutEnd` is set to `DateTime.UtcNow + DefaultLockoutTimeSpan` (5 minutes, configured in Program.cs).
+   - `IsLockedOut` is true.
+3. If the password is **correct**, `AccessFailedCount` is reset to 0 and `LockoutEnd` is cleared.
+
+**For the API**, we check `result.IsLockedOut` and return a message like "Account is locked out. Try again in X minutes."
+
+### JWT Token Generation — What We Do
+
+After a successful login, we generate a JWT token manually (not through the ASP.NET Core auth system). Our `JwtService` does this:
+
+1. Create a `JwtSecurityToken` with:
+   - `Issuer` — from configuration.
+   - `Audience` — from configuration.
+   - `Claims` — the user's claims (ID, UserName, Email, Roles).
+   - `Expires` — current time + expiration window (60 minutes, from configuration).
+   - `SigningCredentials` — HMAC-SHA256 with our secret key.
+2. Write the token as a string (JWT format: header.payload.signature).
+3. Return the token to the client.
+
+The client stores the token (in memory, localStorage, or a secure store) and sends it in the `Authorization: Bearer <token>` header on future requests.
+
+### The Login Response
+
+A successful login returns:
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": 3600,
+    "tokenType": "Bearer",
+    "user": {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "userName": "ahmad",
+      "email": "ahmad@example.com",
+      "fullName": "Ahmad Developer",
+      "emailConfirmed": false
+    }
+  },
+  "message": "Login successful."
+}
+```
+
+The response includes:
+- `token` — the JWT token (the client sends this in the Authorization header).
+- `expiresIn` — the token's lifetime in seconds (3600 = 1 hour).
+- `tokenType` — "Bearer" (the client uses `Authorization: Bearer <token>`).
+- `user` — the user's profile (so the client doesn't need to call /me immediately).
+
+### Security Considerations for Login
+
+| Concern | How We Address It |
+|---------|-------------------|
+| **Don't reveal whether the user exists** | Return the same error for "user not found" and "wrong password" — both return "Invalid credentials." |
+| **Account lockout** | Check lockout status and return an appropriate message. Don't reveal "account locked" vs "wrong password" — but for the tutorial, we show the distinction for educational purposes. |
+| **Password in request body** | Always use HTTPS. The password is sent in the request body (not URL, not headers). HTTPS encrypts the entire request. |
+| **Token storage on client** | The client is responsible for storing the token securely. In a web app, use httpOnly cookies or memory. In a mobile app, use the secure storage. |
+| **Token expiration** | Set a reasonable expiration (1 hour for access tokens). Use refresh tokens for longer sessions (covered in Video 17 / production). |
+| **Brute force protection** | Account lockout (5 failed attempts → 5-minute lockout) prevents brute force. Rate limiting (Video 19) adds another layer. |
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "Now we build the login endpoint — the most important endpoint in any authentication system. The user sends their username and password, we verify them, and if they're correct, we issue a JWT token. I'll show you exactly how CheckPasswordSignInAsync works, why we use it instead of SignInAsync, how the JWT token is generated, and what the response looks like."
+
+**Show on screen:**
+
+> The `LoginRequest` DTO. The `LoginResponse` DTO. The `AccountsController.Login` method, line by line. The `JwtService.GenerateJwtToken` method. The Postman request and response. A decoded JWT token (show the header, payload, and signature in the terminal or a JWT debugger).
+
+**Key points to emphasize (say this):**
+
+> "We use CheckPasswordSignInAsync — not PasswordSignInAsync or SignInAsync. Those create cookies. CheckPasswordSignInAsync just verifies the password and tells us if it succeeded — no cookie, no session. That's what we want in an API."
+
+> "The SignInResult tells us more than just 'succeeded' or 'failed'. It tells us if the account is locked out, if it's not allowed to sign in (email not confirmed), etc. We handle each case differently."
+
+> "After a successful login, we generate a JWT token manually. The JwtService creates a JWT with the user's claims (ID, UserName, Email, Roles) and signs it with our secret key. The client sends this token in the Authorization header on every request."
+
+> "We don't reveal whether the user exists or the password is wrong — both return 'Invalid credentials.' This prevents user enumeration attacks (where an attacker tries to find valid usernames)."
+
+> "The token has an expiration (1 hour by default). After it expires, the client must log in again. In production, you'd use refresh tokens for a better UX — we cover that in Video 17."
+
+**Analogy (say this):**
+
+> "Login is like showing your ID at a security checkpoint. You show your username (your name) and password (your PIN). The guard (CheckPasswordSignInAsync) checks your ID against the records. If everything matches, they give you a temporary badge (JWT token) that you wear for the next hour. Every time you enter a restricted area, the scanner reads your badge — it doesn't check your ID again, it just reads the badge. When the badge expires (1 hour), you have to go back to the checkpoint and get a new one."
+
+**Common viewer questions:**
+
+> "Why not just use the ASP.NET Core auth system to generate the token?" — The ASP.NET Core JWT Bearer middleware validates tokens but doesn't generate them. We generate tokens manually using System.IdentityModel.Tokens.Jwt. This gives us full control over the claims and the token structure.
+
+> "What happens when the token expires?" — The client gets a 401 Unauthorized on the next request. The client must log in again to get a new token. In production, you'd use a refresh token flow to get a new access token without re-entering credentials.
+
+> "Is the JWT token secure?" — The token is signed with our secret key. Anyone can decode the payload (it's Base64Url encoded, not encrypted), but they can't forge the signature without the key. The token is only as secure as the secret key — keep it safe. Use HTTPS to prevent token interception.
+
+> "Can I include roles in the JWT token?" — Yes — we include the user's roles as claims in the JWT. This way, the authorization middleware can check roles without querying the database. We'll see this in Video 10 (RBAC).
+
+**What to show:**
+
+- The LoginRequest DTO
+- The LoginResponse DTO
+- The AccountsController.Login method (full, with comments)
+- The JwtService.GenerateJwtToken method (full, with comments)
+- The Postman request (POST /api/accounts/login with credentials)
+- The Postman response (200 OK with JWT token)
+- A decoded JWT token (use jwt.io or a similar tool to show the payload)
+- A failed login (wrong password) showing the error response
+- A locked-out account showing the lockout message
+
+**What to skip:**
+
+- Refresh token flow (covered in Video 17 — keep it simple for now)
+- External login (Google, Facebook — covered in Video 16)
+- 2FA login (covered in Video 15)
+
+---
+
+## Complete Implementation
+
+### File: DTOs/LoginRequest.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/LoginRequest.cs
+// Video 08 — Login API: Login Request DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the client sends to the login endpoint.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using System.ComponentModel.DataAnnotations;
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LoginRequest — the request body for POST /api/accounts/login.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → UserName: the user's login name (required).
+    //   → Password: the user's password (required).
+    //
+    // We don't validate the password format here — Identity does that during
+    // account creation. During login, we just pass the password to
+    // CheckPasswordSignInAsync and let Identity verify it.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class LoginRequest
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // UserName — the user's login name.
+        //   → [Required]: must be provided.
+        //   → The controller uses this to look up the user via
+        //     UserManager.FindByNameAsync(userName).
+        //   → Alternative: you could allow login by email instead of (or in
+        //     addition to) UserName. For the tutorial, we use UserName.
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "User name is required.")]
+        public string UserName { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Password — the user's password.
+        //   → [Required]: must be provided.
+        //   → The controller passes this to
+        //     SignInManager.CheckPasswordSignInAsync(user, password, true).
+        //   → Identity verifies the password against the stored hash.
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "Password is required.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}
+```
+
+### File: DTOs/LoginResponse.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/LoginResponse.cs
+// Video 08 — Login API: Login Response DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the API returns after a successful login.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LoginResponse — the response body for a successful login.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → Token: the JWT token (the client sends this in the Authorization header).
+    //   → ExpiresIn: the token's lifetime in seconds (e.g., 3600 = 1 hour).
+    //   → TokenType: "Bearer" (the client uses Authorization: Bearer <token>).
+    //   → User: the user's profile (so the client has the user data without an
+    //     additional request to /api/accounts/me).
+    //
+    // The Token is the most important field — without it, the client can't
+    // authenticate subsequent requests.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class LoginResponse
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Token — the JWT access token.
+        //   → This is the signed JWT string (header.payload.signature).
+        //   → The client stores this and sends it in the Authorization header
+        //     on every request: Authorization: Bearer <token>.
+        //   → The token contains the user's claims (ID, UserName, Email, Roles).
+        //   → The token expires after ExpiresIn seconds.
+        // ─────────────────────────────────────────────────────────────────────────
+        public string Token { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // ExpiresIn — the token's lifetime in seconds.
+        //   → The client can use this to show a countdown or to refresh the token
+        //     before it expires.
+        //   → For our tutorial, this is 3600 seconds (1 hour).
+        // ─────────────────────────────────────────────────────────────────────────
+        public int ExpiresIn { get; set; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // TokenType — the token type (always "Bearer" for our API).
+        //   → The client uses this to construct the Authorization header:
+        //     Authorization: Bearer <token>
+        // ─────────────────────────────────────────────────────────────────────────
+        public string TokenType { get; set; } = "Bearer";
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // User — the authenticated user's profile.
+        //   → Included so the client has the user data immediately after login
+        //     (doesn't need to call /api/accounts/me first).
+        //   → Contains: Id, UserName, Email, FullName, EmailConfirmed.
+        //   → Does NOT contain: PasswordHash, SecurityStamp, etc.
+        // ─────────────────────────────────────────────────────────────────────────
+        public UserResponse User { get; set; } = null!;
+    }
+}
+```
+
+### File: Services/JwtService.cs — JWT Token Generation
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Services/JwtService.cs
+// Video 08 — Login API: JWT Token Generation Service
+// ─────────────────────────────────────────────────────────────────────────────
+// This service generates JWT tokens manually (not through the ASP.NET Core
+// auth system).
+//
+// How it works:
+//   1. Gets the user's claims (ID, UserName, Email, Roles).
+//   2. Creates a JwtSecurityToken with the claims, issuer, audience, expiration,
+//      and signing credentials.
+//   3. Writes the token as a string (JWT format).
+//   4. Returns the token and its expiration time.
+//
+// This service is called by the Login endpoint after a successful login.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using IdentityApiTutorial.Models;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace IdentityApiTutorial.Services
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // JwtService — generates JWT tokens for authenticated users.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // This is a custom service — not part of Identity.
+    // It uses System.IdentityModel.Tokens.Jwt to create and sign JWT tokens.
+    //
+    // Design decisions:
+    //   → Scoped service (one instance per request) — appropriate because it
+    //     reads configuration and creates a token per request.
+    //   → Reads JWT settings from IConfiguration (SecretKey, Issuer, Audience,
+    //     ExpirationInMinutes).
+    //   → Includes the user's roles as claims in the JWT (so authorization can
+    //     check roles without querying the database).
+    //
+    // HOW TO USE THIS FOR YOUR VIDEO:
+    //   - Show the GenerateJwtToken method line by line.
+    //   - Explain each claim we add to the JWT.
+    //   - Explain the signing credentials (SymmetricSecurityKey with HS256).
+    //   - Explain the expiration.
+    //   - Show a decoded JWT token (use jwt.io) to verify the claims are there.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class JwtService
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // _configuration — used to read JWT settings from appsettings.json.
+        //   → IConfiguration is injected by DI (available by default in .NET).
+        //   → We read: JwtSettings:SecretKey, JwtSettings:Issuer,
+        //     JwtSettings:Audience, JwtSettings:ExpirationInMinutes.
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly IConfiguration _configuration;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Constructor — IConfiguration is injected by DI.
+        // ─────────────────────────────────────────────────────────────────────────
+        public JwtService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // GenerateJwtToken — creates a JWT token for the given user.
+        //   → Called after a successful login (CheckPasswordSignInAsync succeeded).
+        //   → Returns a tuple: (token string, expires in seconds).
+        //
+        // Parameters:
+        //   → user: the ApplicationUser that just logged in.
+        //   → userManager: UserManager for getting the user's roles.
+        //
+        // Returns: Task<(string Token, int ExpiresIn)>
+        //   → Token: the JWT token string.
+        //   → ExpiresIn: the token's lifetime in seconds.
+        // ─────────────────────────────────────────────────────────────────────────
+        public async Task<(string Token, int ExpiresIn)> GenerateJwtToken(
+            ApplicationUser user,
+            UserManager<ApplicationUser> userManager)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Read JWT settings from configuration.
+            //   → SecretKey: the key used to sign the token (HMAC-SHA256).
+            //     Must be at least 256 bits (32 characters).
+            //   → Issuer: the entity that issued the token (our API).
+            //   → Audience: the entity the token is for (our API's clients).
+            //   → ExpirationInMinutes: how long the token is valid (default 60).
+            // ─────────────────────────────────────────────────────────────────────────
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var secretKey = jwtSettings["SecretKey"]
+                ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
+            var issuer = jwtSettings["Issuer"]
+                ?? throw new InvalidOperationException("JWT Issuer is not configured.");
+            var audience = jwtSettings["Audience"]
+                ?? throw new InvalidOperationException("JWT Audience is not configured.");
+            var expirationMinutes = int.Parse(jwtSettings["ExpirationInMinutes"] ?? "60");
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Get the user's roles.
+            //   → UserManager.GetRolesAsync(user) returns the roles assigned to the
+            //     user (e.g., "Admin", "User").
+            //   → We include these as claims in the JWT so that the authorization
+            //     middleware can check roles without querying the database.
+            //   → This is important for performance — the JWTBearer middleware doesn't
+            //     have access to the database, it only reads the JWT claims.
+            // ─────────────────────────────────────────────────────────────────────────
+            var roles = await userManager.GetRolesAsync(user);
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Create the claims for the JWT.
+            //   → Claims are name-value pairs that describe the user.
+            //   → The JWT payload is a JSON object with these claims.
+            //   → We add the following claims:
+            //     → ClaimTypes.NameIdentifier (sub): the user's ID — this is the
+            //       standard "subject" claim in JWT. The authorization middleware
+            //       uses this to identify the user.
+            //     → ClaimTypes.Name (name): the user's UserName.
+            //     → ClaimTypes.Email (email): the user's email.
+            //     → Custom "fullName" claim: the user's full name (optional).
+            //     → Role claims (role): one claim per role (e.g., "Admin", "User").
+            //       These are used by [Authorize(Roles="Admin")] to check roles.
+            // ─────────────────────────────────────────────────────────────────────────
+            var claims = new List<Claim>
+            {
+                // Subject claim — the user's unique identifier.
+                // This is the standard "sub" claim in JWT.
+                // The authorization middleware uses this to identify the user
+                // (User.FindFirstValue(ClaimTypes.NameIdentifier)).
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+
+                // Name claim — the user's UserName.
+                // This is the standard "name" claim in JWT.
+                new Claim(ClaimTypes.Name, user.UserName),
+
+                // Email claim — the user's email address.
+                // This is the standard "email" claim in JWT.
+                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+
+                // Custom "fullName" claim — the user's display name.
+                // Custom claims use any string as the type.
+                // We use "fullName" as the claim type.
+                new Claim("fullName", user.FullName ?? string.Empty),
+
+                // Role claims — one claim per role.
+                // Each role becomes a "role" claim in the JWT.
+                // The authorization middleware checks these for
+                // [Authorize(Roles="Admin")] etc.
+                // Note: We use "role" (singular) as the claim type for each role.
+                // Some systems use "roles" (array) — we use individual "role" claims
+                // for simplicity and compatibility with ASP.NET Core's role authorization.
+            };
+
+            // Add a claim for each role.
+            // [Authorize(Roles="Admin")] checks for a claim of type "role" with
+            // value "Admin". By adding one "role" claim per user role, we enable
+            // role-based authorization via JWT claims.
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+                // Also add a "role" claim (some systems expect this instead of
+                // ClaimTypes.Role which is "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").
+                // Both work — ClaimTypes.Role is the standard .NET mapping.
+                claims.Add(new Claim("role", role));
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 4: Create the signing credentials.
+            //   → SymmetricSecurityKey: uses HMAC-SHA256 (HS256 algorithm).
+            //   → The key is the secret key from configuration, converted to bytes.
+            //   → This key is used to SIGN the token (create the signature).
+            //   → The same key is used by the JwtBearer middleware to VALIDATE
+            //     the token (verify the signature).
+            //   → Security: keep this key secret. Anyone with the key can forge tokens.
+            // ─────────────────────────────────────────────────────────────────────────
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 5: Create the JWT token.
+            //   → JwtSecurityToken represents a JWT before it's written as a string.
+            //   → Parameters:
+            //     → issuer: the entity that issued the token.
+            //     → audience: the entity the token is for.
+            //     → claims: the claims to include in the token.
+            //     → expires: when the token expires (current time + expiration).
+            //     → signingCredentials: the key and algorithm used to sign the token.
+            //   → The token is NOT encrypted — the payload is visible (Base64Url
+            //     encoded). Only the signature is protected.
+            // ─────────────────────────────────────────────────────────────────────────
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+                signingCredentials: credentials
+            );
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 6: Write the token as a string.
+            //   → new JwtSecurityTokenHandler().WriteToken(token) converts the
+            //     JwtSecurityToken to a JWT string (header.payload.signature).
+            //   → The result is a long string like:
+            //     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkw..."
+            //   → This is the token that the client sends in the Authorization header.
+            // ─────────────────────────────────────────────────────────────────────────
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenString = tokenHandler.WriteToken(token);
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 7: Return the token and expiration.
+            //   → Token: the JWT string.
+            //   → ExpiresIn: the token's lifetime in seconds (for the client to
+            //     know when to refresh).
+            // ─────────────────────────────────────────────────────────────────────────
+            return (tokenString, expirationMinutes * 60);
+        }
+    }
+}
+```
+
+### File: Controllers/AccountsController.cs — Login Endpoint (Add to Existing Controller)
+
+Add this to the existing `AccountsController`:
+
+```csharp
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/accounts/login — Login and receive a JWT token
+// ═══════════════════════════════════════════════════════════════════════════
+// Request body: { "userName": "...", "password": "..." }
+// Response: 200 OK with LoginResponse (on success)
+//           401 Unauthorized with error message (on failure)
+// ─────────────────────────────────────────────────────────────────────────────
+[HttpPost("login")]
+public async Task<IActionResult> Login([FromBody] LoginRequest request)
+{
+    // ─────────────────────────────────────────────────────────────────────────
+    // Step 1: Find the user by UserName.
+    //   → UserManager.FindByNameAsync looks up the user in the database.
+    //   → Returns Task<ApplicationUser?> (nullable — user may not exist).
+    //   → If the user doesn't exist, we return an error.
+    //   → IMPORTANT: For security, we don't reveal whether the user exists.
+    //     We return the same error for "user not found" and "wrong password".
+    //     This prevents user enumeration attacks.
+    // ─────────────────────────────────────────────────────────────────────────
+    var user = await _userManager.FindByNameAsync(request.UserName);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Step 2: If user not found, return error.
+    //   → We return "Invalid credentials." — the same message we'd return for
+    //     a wrong password. This prevents attackers from enumerating valid users.
+    //   → In a production API, you might want to return the same generic message
+    //     for all authentication failures.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (user == null)
+    {
+        return Unauthorized(new ApiResponse<object>
+        {
+            Success = false,
+            Data = null,
+            Message = "Invalid credentials.",
+            Errors = new Dictionary<string, string[]>
+            {
+                { "UserName", new[] { "Invalid credentials." } }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Step 3: Check the password using SignInManager.CheckPasswordSignInAsync.
+    //   → This is the key Identity call for login in an API.
+    //   → Parameters:
+    //     → user: the user to check (from step 1).
+    //     → password: the plaintext password from the request.
+    //     → lockoutOnFailure: true — enables account lockout on failed attempts.
+    //       If the password is wrong, AccessFailedCount is incremented.
+    //       If AccessFailedCount reaches MaxFailedAccessAttempts (5), the account
+    //       is locked out for DefaultLockoutTimeSpan (5 minutes).
+    //   → Returns Task<SignInResult>:
+    //     → Succeeded: password is correct, account is not locked out, account
+    //       is allowed to sign in.
+    //     → IsLockedOut: account is locked out (too many failed attempts).
+    //     → IsNotAllowed: account is not allowed to sign in (e.g., email not
+    //       confirmed, if we enforce that).
+    //     → Failed: password is wrong (and lockout may have been triggered).
+    //   → IMPORTANT: This does NOT create a cookie or sign the user in.
+    //     It only verifies the password and returns the result.
+    //     We then manually generate a JWT token if the result is Succeeded.
+    // ─────────────────────────────────────────────────────────────────────────
+    var result = await _signInManager.CheckPasswordSignInAsync(
+        user, request.Password, lockoutOnFailure: true);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Step 4: Handle the result.
+    //   → If Succeeded: generate JWT token and return it.
+    //   → If IsLockedOut: return 401 with lockout message.
+    //   → If IsNotAllowed: return 401 with not-allowed message.
+    //   → If Failed: return 401 with "Invalid credentials."
+    // ─────────────────────────────────────────────────────────────────────────
+    if (result.Succeeded)
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Step 5: Generate the JWT token.
+        //   → JwtService.GenerateJwtToken creates a JWT with the user's claims.
+        //   → Returns (token string, expires in seconds).
+        //   → The token includes:
+        //     → User ID (sub claim)
+        //     → UserName (name claim)
+        //     → Email (email claim)
+        //     → FullName (custom claim)
+        //     → Roles (role claims — one per user role)
+        // ─────────────────────────────────────────────────────────────────────────
+        var (token, expiresIn) = await _jwtService.GenerateJwtToken(user, _userManager);
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Step 6: Create the login response.
+        //   → LoginResponse contains: Token, ExpiresIn, TokenType, User.
+        //   → The User field is a UserResponse (the user's profile).
+        // ─────────────────────────────────────────────────────────────────────────
+        var response = new LoginResponse
+        {
+            Token = token,
+            ExpiresIn = expiresIn,
+            TokenType = "Bearer",
+            User = new UserResponse
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                FullName = user.FullName,
+                EmailConfirmed = user.EmailConfirmed,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Step 7: Return 200 OK with the login response.
+        //   → The client stores the token and uses it for subsequent requests.
+        //   → The client includes the token in the Authorization header:
+        //     Authorization: Bearer <token>
+        // ─────────────────────────────────────────────────────────────────────────
+        return Ok(new ApiResponse<LoginResponse>
+        {
+            Success = true,
+            Data = response,
+            Message = "Login successful."
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Handle IsLockedOut.
+    //   → The account is locked out due to too many failed attempts.
+    //   → We return 401 with a message indicating the lockout.
+    //   → For security, you might not want to reveal that the account is locked out
+    //     (attackers could use this to identify valid accounts). For the tutorial,
+    //     we show the distinction for educational purposes.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (result.IsLockedOut)
+    {
+        return Unauthorized(new ApiResponse<object>
+        {
+            Success = false,
+            Data = null,
+            Message = "Account is locked out due to too many failed login attempts. Please try again later.",
+            Errors = new Dictionary<string, string[]>
+            {
+                { "UserName", new[] { "Account is locked out." } }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Handle IsNotAllowed.
+    //   → The account exists but is not allowed to sign in (e.g., email not
+    //     confirmed, if we enforce that).
+    // ─────────────────────────────────────────────────────────────────────────
+    if (result.IsNotAllowed)
+    {
+        return Unauthorized(new ApiResponse<object>
+        {
+            Success = false,
+            Data = null,
+            Message = "Login not allowed. Please confirm your email or contact support.",
+            Errors = new Dictionary<string, string[]>
+            {
+                { "UserName", new[] { "Login not allowed." } }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Handle Failed (password is wrong).
+    //   → Return "Invalid credentials." — the same message as "user not found".
+    //   → This prevents user enumeration.
+    // ─────────────────────────────────────────────────────────────────────────
+    return Unauthorized(new ApiResponse<object>
+    {
+        Success = false,
+        Data = null,
+        Message = "Invalid credentials.",
+        Errors = new Dictionary<string, string[]>
+        {
+            { "Password", new[] { "Invalid credentials." } }
+        }
+    });
+}
+```
+
+**Note:** The `_signInManager` field must be added to the controller's constructor:
+
+```csharp
+private readonly SignInManager<ApplicationUser> _signInManager;
+
+public AccountsController(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    JwtService jwtService)
+{
+    _userManager = userManager;
+    _signInManager = signInManager;
+    _jwtService = jwtService;
+}
+```
+
+---
+
+## Postman / Swagger Tests
+
+### Test 1: Successful Login
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/login
+Content-Type: application/json
+
+{
+  "userName": "ahmad",
+  "password": "Test@1234"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkw...",
+    "expiresIn": 3600,
+    "tokenType": "Bearer",
+    "user": {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "userName": "ahmad",
+      "email": "ahmad@example.com",
+      "fullName": "Ahmad Developer",
+      "emailConfirmed": false,
+      "createdAt": "2024-01-01T12:00:00Z"
+    }
+  },
+  "message": "Login successful."
+}
+```
+
+**Verification:**
+- `success: true`.
+- `data.token` is a long JWT string (starts with "eyJ").
+- `data.expiresIn` is 3600 (1 hour).
+- `data.tokenType` is "Bearer".
+- `data.user` contains the user's profile.
+- Save the token to use in subsequent tests.
+
+### Test 2: Decode the JWT Token
+
+1. Copy the token from the response.
+2. Go to https://jwt.io (or use a similar JWT debugger).
+3. Paste the token in the "Encoded" field.
+4. Verify the payload contains:
+   - `sub`: the user's ID.
+   - `name`: the user's UserName.
+   - `email`: the user's email.
+   - `fullName`: the user's full name.
+   - `role`: the user's role(s) (if any — the user may not have roles yet).
+   - `exp`: the expiration timestamp.
+   - `iat`: the issued-at timestamp.
+   - `iss`: the issuer.
+   - `aud`: the audience.
+
+### Test 3: Login with Wrong Password
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/login
+Content-Type: application/json
+
+{
+  "userName": "ahmad",
+  "password": "WrongPassword123!"
+}
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Invalid credentials.",
+  "errors": {
+    "Password": ["Invalid credentials."]
+  }
+}
+```
+
+**Verification:**
+- `success: false`.
+- The message is "Invalid credentials." — the same as for "user not found".
+- This prevents user enumeration.
+
+### Test 4: Login with Non-Existent User
+
+**Request:**
+```
+POST https://localhost:7001/api/accounts/login
+Content-Type: application/json
+
+{
+  "userName": "nonexistent",
+  "password": "Test@1234"
+}
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Invalid credentials.",
+  "errors": {
+    "UserName": ["Invalid credentials."]
+  }
+}
+```
+
+**Verification:**
+- The response is the same as for a wrong password (but the error is under "UserName" instead of "Password" — for educational purposes; in production, use the same key for both).
+- This prevents user enumeration.
+
+### Test 5: Login with Valid Token — Access Protected Endpoint
+
+1. Get a token from Test 1.
+2. Create a new request:
+   ```
+   GET https://localhost:7001/api/accounts/me
+   Authorization: Bearer <token>
+   ```
+3. Expected Response (200 OK):
+   ```json
+   {
+     "success": true,
+     "data": {
+       "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+       "userName": "ahmad",
+       "email": "ahmad@example.com",
+       "fullName": "Ahmad Developer",
+       "emailConfirmed": false,
+       "createdAt": "2024-01-01T12:00:00Z"
+     },
+     "message": null
+   }
+   ```
+4. Verification: The JWT token is validated by the JwtBearer middleware, and the /me endpoint returns the user's profile.
+
+### Test 6: Access Protected Endpoint Without Token
+
+**Request:**
+```
+GET https://localhost:7001/api/accounts/me
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Unauthorized",
+  "status": 401,
+  "traceId": "00-abc123..."
+}
+```
+
+**Verification:**
+- Without a valid JWT token, the [Authorize] attribute returns 401.
+
+### Test 7: Access Protected Endpoint with Invalid Token
+
+**Request:**
+```
+GET https://localhost:7001/api/accounts/me
+Authorization: Bearer invalid.token.here
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Unauthorized",
+  "status": 401,
+  "traceId": "00-abc123..."
+}
+```
+
+**Verification:**
+- The JwtBearer middleware validates the token signature and rejects invalid tokens.
+
+### Test 8: Account Lockout (Test After Multiple Failed Attempts)
+
+1. Attempt to login with the wrong password 5 times:
+   ```
+   POST /api/accounts/login { "userName": "ahmad", "password": "wrong1" }
+   POST /api/accounts/login { "userName": "ahmad", "password": "wrong2" }
+   ...
+   ```
+2. After 5 failed attempts, the account should be locked out.
+3. Attempt to login with the correct password:
+   ```
+   POST /api/accounts/login { "userName": "ahmad", "password": "Test@1234" }
+   ```
+4. Expected Response (401 Unauthorized):
+   ```json
+   {
+     "success": false,
+     "data": null,
+     "message": "Account is locked out due to too many failed login attempts. Please try again later.",
+     "errors": {
+       "UserName": ["Account is locked out."]
+     }
+   }
+   ```
+5. Wait 5 minutes (the configured lockout duration) and try again — should succeed.
+
+### Swagger Tests
+
+1. Run the API and navigate to `https://localhost:7001/swagger`.
+2. Find `POST /api/accounts/login`.
+3. Click "Try it out".
+4. Enter:
+   ```json
+   {
+     "userName": "ahmad",
+     "password": "Test@1234"
+   }
+   ```
+5. Click "Execute".
+6. Expected: `200 OK` with the JWT token.
+7. Copy the token.
+8. Click the "Authorize" button at the top of Swagger UI.
+9. Paste the token (with "Bearer " prefix).
+10. Click "Authorize" → "Close".
+11. Find `GET /api/accounts/me`.
+12. Click "Try it out" → "Execute".
+13. Expected: `200 OK` with the user profile.
+
+---
+
+# Video 09 — Role Management API — CRUD Roles, Assign / Remove Users
+
+## Theory & Definitions
+
+### What Role Management Does
+
+Role management is the set of endpoints that:
+1. **Create roles** — add new roles to the system (e.g., "Admin", "Moderator", "User").
+2. **Read roles** — list all roles, get a role by ID or name.
+3. **Update roles** — change a role's name or description.
+4. **Delete roles** — remove roles (and automatically remove the role from all users).
+5. **Assign roles to users** — give a user one or more roles.
+6. **Remove roles from users** — revoke a user's role.
+7. **Get a user's roles** — list the roles assigned to a user.
+
+### What Roles Are and Why They Matter
+
+Roles are named groups that represent a set of permissions. Instead of checking individual permissions for each user, you check if the user belongs to a role.
+
+**Example:**
+- "Admin" role → can manage users, manage roles, access admin endpoints.
+- "Moderator" role → can edit/delete posts, ban users.
+- "User" role → can access their own data, edit their own profile.
+
+Roles simplify authorization:
+- `[Authorize(Roles="Admin")]` — only users with the "Admin" role can access.
+- `[Authorize(Roles="Admin, Moderator")]` — users with either role can access.
+- `[Authorize(Roles="Admin")]` and `[Authorize(Roles="Moderator")]` on different endpoints — different access levels.
+
+### Role-Based Access Control (RBAC) — The Concept
+
+RBAC is a security model where access is granted based on roles. The three main entities are:
+1. **Users** — the people or entities that need access.
+2. **Roles** — named groups that represent a set of permissions.
+3. **Permissions** — the specific actions that can be performed (e.g., "create user", "delete post", "view report").
+
+In RBAC:
+- Users are assigned to roles.
+- Roles are assigned permissions.
+- Users inherit permissions from their roles.
+
+In our API, we implement RBAC at the role level — roles are assigned to users, and endpoints check roles with `[Authorize(Roles="...")]`. Permissions within a role are implicit (the role defines what you can do).
+
+### The Role Management Endpoints
+
+| Method | Endpoint | Purpose | Required Role |
+|--------|----------|---------|---------------|
+| `POST` | `/api/roles` | Create a new role | Admin |
+| `GET` | `/api/roles` | List all roles | Admin (or any authenticated user — depends on your design) |
+| `GET` | `/api/roles/{id}` | Get a role by ID | Admin |
+| `GET` | `/api/roles/name/{name}` | Get a role by name | Admin |
+| `PUT` | `/api/roles/{id}` | Update a role | Admin |
+| `DELETE` | `/api/roles/{id}` | Delete a role | Admin |
+| `POST` | `/api/users/{userId}/roles` | Assign role(s) to a user | Admin |
+| `DELETE` | `/api/users/{userId}/roles/{roleName}` | Remove a role from a user | Admin |
+| `GET` | `/api/users/{userId}/roles` | Get a user's roles | Admin (or the user themselves) |
+
+### The Role DTOs
+
+**CreateRoleRequest:**
+```json
+{
+  "name": "Admin",
+  "description": "Full access to all administrative functions"
+}
+```
+
+**RoleResponse:**
+```json
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "name": "Admin",
+  "normalizedName": "ADMIN",
+  "description": "Full access to all administrative functions",
+  "createdDate": "2024-01-01T12:00:00Z",
+  "userCount": 5
+}
+```
+
+### The Role CRUD Flow
+
+**Create Role:**
+```
+POST /api/roles { name: "Admin", description: "..." }
+    ↓
+RolesController.CreateRole()
+    ↓
+Check if role already exists (RoleManager.RoleExistsAsync(name))
+    ↓
+If exists → return 400 Bad Request ("Role already exists.")
+If not → create ApplicationRole { Name = name, Description = description }
+    ↓
+RoleManager.CreateAsync(role)
+    ↓
+If success → return 201 Created with RoleResponse
+If failed → return 400 Bad Request with errors
+```
+
+**Assign Role to User:**
+```
+POST /api/users/{userId}/roles { roleName: "Admin" }
+    ↓
+UsersController.AssignRole()
+    ↓
+Check if user exists (UserManager.FindByIdAsync(userId))
+    ↓
+Check if role exists (RoleManager.RoleExistsAsync(roleName))
+    ↓
+UserManager.AddToRoleAsync(user, roleName)
+    ↓
+If success → return 200 OK
+If failed → return 400 Bad Request with errors
+```
+
+### The RoleManager — Key Methods
+
+| Method | Purpose |
+|--------|---------|
+| `CreateAsync(role)` | Creates a new role |
+| `UpdateAsync(role)` | Updates a role's properties |
+| `DeleteAsync(role)` | Deletes a role |
+| `FindByIdAsync(id)` | Finds a role by ID |
+| `FindByNameAsync(name)` | Finds a role by name |
+| `RoleExistsAsync(roleName)` | Checks if a role with that name exists |
+| `AddClaimAsync(role, claim)` | Adds a claim to the role |
+| `RemoveClaimAsync(role, claim)` | Removes a claim from the role |
+| `GetClaimsAsync(role)` | Gets the role's claims |
+
+### The UserManager — Role-Related Methods
+
+| Method | Purpose |
+|--------|---------|
+| `AddToRoleAsync(user, roleName)` | Adds a user to a role |
+| `AddToRolesAsync(user, roleNames)` | Adds a user to multiple roles |
+| `RemoveFromRoleAsync(user, roleName)` | Removes a user from a role |
+| `RemoveFromRolesAsync(user, roleNames)` | Removes a user from multiple roles |
+| `GetRolesAsync(user)` | Gets the user's roles |
+| `IsInRoleAsync(user, roleName)` | Checks if the user is in a role |
+| `GetRoleNamesAsync(user)` | Gets the user's role names (same as GetRolesAsync) |
+
+### The User-Role Relationship — How It's Stored
+
+When you call `UserManager.AddToRoleAsync(user, "Admin")`:
+
+1. Identity creates a new row in the `AspNetUserRoles` table:
+   - `UserId` = the user's ID.
+   - `RoleId` = the role's ID (found by looking up the role by name).
+2. The relationship is many-to-many: a user can have multiple roles, and a role can have multiple users.
+3. When you call `UserManager.RemoveFromRoleAsync(user, "Admin")`, the row is deleted from `AspNetUserRoles`.
+
+### Why We Check Role Existence Before Assigning
+
+When assigning a role to a user, we check:
+1. **User exists** — `UserManager.FindByIdAsync(userId)` returns a user.
+2. **Role exists** — `RoleManager.RoleExistsAsync(roleName)` returns true.
+
+If either check fails, we return an error. This prevents:
+- Assigning a non-existent role to a user (would fail anyway, but we give a clear error).
+- Adding a role to a non-existent user (would fail anyway, but we give a clear error).
+
+### The NormalizedName — What It Is
+
+`IdentityRole` has a `NormalizedName` property that stores the uppercase version of the role name. This is used for case-insensitive lookups:
+
+```
+Role name: "Admin"
+NormalizedName: "ADMIN"
+```
+
+When you call `RoleManager.FindByNameAsync("admin")`, Identity normalizes the input to "ADMIN" and looks up by NormalizedName. This makes role lookups case-insensitive.
+
+**For the API**, we accept any case for the role name in requests, but we store it in its original case (with NormalizedName for lookups).
+
+### The Role Response — What We Include
+
+The `RoleResponse` includes:
+- `Id` — the role's unique identifier.
+- `Name` — the role's name (original case).
+- `NormalizedName` — the uppercase version (for diagnostic purposes).
+- `Description` — the role's description (nullable).
+- `CreatedDate` — when the role was created.
+- `UserCount` — the number of users with this role (optional — useful for admin UIs).
+
+---
+
+## 🎬 Video Recording Notes
+
+**Opening (say this):**
+
+> "Now we build the role management API — create roles, list roles, update roles, delete roles, and assign roles to users. Roles are the foundation of authorization in Identity — they determine what users can do. We'll create a complete CRUD API for roles, plus endpoints to assign and remove roles from users."
+
+**Show on screen:**
+
+> The `CreateRoleRequest` and `RoleResponse` DTOs. The `RolesController` with all CRUD endpoints. The `UsersController` with assign/remove role endpoints. The Postman requests and responses for each operation. The database viewer showing the AspNetRoles and AspNetUserRoles tables.
+
+**Key points to emphasize (say this):**
+
+> "Roles are simple — they're just named groups. What makes them powerful is how you use them in authorization: [Authorize(Roles='Admin')] gates access to endpoints."
+
+> "RoleManager handles role CRUD. UserManager handles role assignment (AddToRoleAsync, RemoveFromRoleAsync). Don't mix them up."
+
+> "When you delete a role, Identity automatically removes the role from all users (via the AspNetUserRoles junction table). You don't need to do this manually."
+
+> "Always check if a role exists before assigning it to a user. And check if the user exists before assigning a role to them. This gives clear error messages instead of letting Identity throw exceptions."
+
+> "Roles are case-insensitive for lookups (NormalizedName handles this), but we store the original case for display."
+
+**Analogy (say this):**
+
+> "Roles are like job titles in a company. 'Admin' is like 'CEO' — full access. 'Moderator' is like 'Team Lead' — can manage the team but not the whole company. 'User' is like 'Employee' — can do their own work but not manage others. Assigning a role to a user is like giving someone a job title. Removing a role is like changing their title. And deleting a role is like eliminating a position — everyone with that title loses it."
+
+**Common viewer questions:**
+
+> "Do I need to create roles before users can log in?" — Not necessarily. A user can log in without any roles. But if you have [Authorize(Roles='Admin')] endpoints, users without the 'Admin' role can't access them. You should create the default roles (like 'User') before launching the application.
+
+> "Can a user have multiple roles?" — Yes. A user can have 'Admin' and 'Moderator' at the same time. [Authorize(Roles='Admin, Moderator')] checks if the user has EITHER role. [Authorize(Roles='Admin')] and [Authorize(Roles='Moderator')] on different endpoints checks for the specific role.
+
+> "What happens if I delete a role that's assigned to users?" — Identity automatically removes the role from all users (deletes the rows from AspNetUserRoles). The users still exist, they just lose that role.
+
+> "Can I rename a role?" — Yes, by updating the role's Name property and calling RoleManager.UpdateAsync. But this is rarely needed — roles are usually created once and not renamed. If you need to rename, be aware that role lookups are case-insensitive (NormalizedName), so the new name will be normalized automatically.
+
+**What to show:**
+
+- CreateRoleRequest and RoleResponse DTOs
+- RolesController with all CRUD endpoints
+- UsersController with assign/remove endpoints
+- Postman tests for each operation
+- Database viewer showing AspNetRoles and AspNetUserRoles
+- Swagger UI with the role endpoints
+
+**What to skip:**
+
+- Role claims (claims attached to roles — covered in Video 12 / policies)
+- Dynamic role creation by end users (covered in Video 19 / production)
+- Role hierarchy (Admin > Moderator > User — advanced, not covered in this tutorial)
+
+---
+
+## Complete Implementation
+
+### File: DTOs/CreateRoleRequest.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/CreateRoleRequest.cs
+// Video 09 — Role Management: Create Role Request DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the client sends to create a role.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using System.ComponentModel.DataAnnotations;
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // CreateRoleRequest — the request body for POST /api/roles.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → Name: the role's name (required, unique, with length constraints).
+    //   → Description: optional description of what the role allows.
+    //
+    // The role name is the most important field — it's used in
+    // [Authorize(Roles="Admin")] checks, so it must be unique and consistent.
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class CreateRoleRequest
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // Name — the role's name.
+        //   → [Required]: must be provided.
+        //   → [StringLength(50, MinimumLength = 2)]: between 2 and 50 characters.
+        //   → [RegularExpression]: allows letters, numbers, and spaces. No special
+        //     characters that might cause issues in authorization checks.
+        //   → Why these constraints? The role name is used in [Authorize(Roles="...")]
+        //     attributes, so it should be simple and consistent.
+        //   → Common role names: "Admin", "Moderator", "User", "Manager", "Editor".
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "Role name is required.")]
+        [StringLength(50, MinimumLength = 2,
+            ErrorMessage = "Role name must be between 2 and 50 characters.")]
+        [RegularExpression(@"^[a-zA-Z0-9\s]+$",
+            ErrorMessage = "Role name can only contain letters, numbers, and spaces.")]
+        public string Name { get; set; } = string.Empty;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Description — optional description of the role.
+        //   → No [Required] — it's optional.
+        //   → [StringLength(256)]: max 256 characters.
+        //   → Stored in ApplicationRole.Description (nullable column in AspNetRoles).
+        // ─────────────────────────────────────────────────────────────────────────
+        [StringLength(256, ErrorMessage = "Description cannot exceed 256 characters.")]
+        public string? Description { get; set; }
+    }
+}
+```
+
+### File: DTOs/RoleResponse.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/RoleResponse.cs
+// Video 09 — Role Management: Role Response DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the API returns for role-related endpoints.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // RoleResponse — the response body for role-related endpoints.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → Id: the role's unique identifier.
+    //   → Name: the role's name (original case).
+    //   → NormalizedName: the uppercase version (for diagnostic purposes).
+    //   → Description: the role's description (nullable).
+    //   → CreatedDate: when the role was created.
+    //   → UserCount: the number of users with this role (optional — useful for
+    //     admin UIs that show role statistics).
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class RoleResponse
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string NormalizedName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public int UserCount { get; set; }
+    }
+}
+```
+
+### File: DTOs/AssignRoleRequest.cs
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: DTOs/AssignRoleRequest.cs
+// Video 09 — Role Management: Assign Role Request DTO
+// ─────────────────────────────────────────────────────────────────────────────
+// This DTO defines what the client sends to assign a role to a user.
+// ─────────────────────────────────────────────────────────────────────────────
+
+using System.ComponentModel.DataAnnotations;
+
+namespace IdentityApiTutorial.DTOs
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // AssignRoleRequest — the request body for POST /api/users/{userId}/roles.
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Properties:
+    //   → RoleName: the name of the role to assign (required).
+    //
+    // The role name must match an existing role (case-insensitive).
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class AssignRoleRequest
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // RoleName — the name of the role to assign.
+        //   → [Required]: must be provided.
+        //   → [StringLength(50)]: max 50 characters (matches role name constraints).
+        //   → The controller checks if the role exists before assigning.
+        // ─────────────────────────────────────────────────────────────────────────
+        [Required(ErrorMessage = "Role name is required.")]
+        [StringLength(50, ErrorMessage = "Role name cannot exceed 50 characters.")]
+        public string RoleName { get; set; } = string.Empty;
+    }
+}
+```
+
+### File: Controllers/RolesController.cs — Role CRUD
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Controllers/RolesController.cs
+// Video 09 — Role Management: Roles Controller (CRUD)
+// ─────────────────────────────────────────────────────────────────────────────
+// This controller handles role management:
+//   → Create role (POST /api/roles)
+//   → List all roles (GET /api/roles)
+//   → Get role by ID (GET /api/roles/{id})
+//   → Get role by name (GET /api/roles/name/{name})
+//   → Update role (PUT /api/roles/{id})
+//   → Delete role (DELETE /api/roles/{id})
+//
+// All endpoints require the "Admin" role ([Authorize(Roles="Admin")]).
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using IdentityApiTutorial.DTOs;
+using IdentityApiTutorial.Models;
+using System.Threading.Tasks;
+
+namespace IdentityApiTutorial.Controllers
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [ApiController] + [Route("api/[controller]")] — same as AccountsController.
+    // ─────────────────────────────────────────────────────────────────────────────
+    [ApiController]
+    [Route("api/[controller]")]
+    public class RolesController : ControllerBase
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // _roleManager — handles all role operations.
+        //   → Injected by DI (registered by AddIdentityCore with AddRoles in
+        //     Program.cs).
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly RoleManager<ApplicationRole> _roleManager;
+
+        public RolesController(RoleManager<ApplicationRole> roleManager)
+        {
+            _roleManager = roleManager;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // POST /api/roles — Create a new role
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Request body: { "name": "Admin", "description": "..." }
+        // Response: 201 Created with RoleResponse (on success)
+        //           400 Bad Request if role already exists or validation fails
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]  // Only admins can create roles
+        [HttpPost]
+        public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Check if the role already exists.
+            //   → RoleManager.RoleExistsAsync checks if a role with this name exists.
+            //   → Role names are case-insensitive (NormalizedName handles this).
+            //   → If the role exists, return 400 Bad Request.
+            // ─────────────────────────────────────────────────────────────────────────
+            if (await _roleManager.RoleExistsAsync(request.Name))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"Role '{request.Name}' already exists.",
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        { "Name", new[] { $"Role '{request.Name}' already exists." } }
+                    }
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Create the ApplicationRole.
+            //   → Set Name, Description, and CreatedDate.
+            //   → CreatedDate is set to DateTime.UtcNow (or you could let EF Core
+            //     set it with a default value in the model).
+            // ─────────────────────────────────────────────────────────────────────────
+            var role = new ApplicationRole
+            {
+                Name = request.Name,
+                Description = request.Description,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Create the role using RoleManager.CreateAsync.
+            //   → This saves the role to the AspNetRoles table.
+            //   → Returns IdentityResult (Success or Failed with errors).
+            // ─────────────────────────────────────────────────────────────────────────
+            var result = await _roleManager.CreateAsync(role);
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 4: Check the result and return the response.
+            //   → If Success: return 201 Created with the role data.
+            //   → If Failed: return 400 Bad Request with the errors.
+            // ─────────────────────────────────────────────────────────────────────────
+            if (result.Succeeded)
+            {
+                return Ok(new ApiResponse<RoleResponse>
+                {
+                    Success = true,
+                    Data = new RoleResponse
+                    {
+                        Id = role.Id,
+                        Name = role.Name,
+                        NormalizedName = role.NormalizedName,
+                        Description = role.Description,
+                        CreatedDate = role.CreatedDate,
+                        UserCount = 0  // New role has no users yet
+                    },
+                    Message = $"Role '{request.Name}' created successfully."
+                });
+            }
+
+            // Return errors
+            var errors = new Dictionary<string, string[]>();
+            foreach (var error in result.Errors)
+            {
+                errors["Name"] = errors["Name"] ?? new string[] { };
+                errors["Name"] = errors["Name"].Append(error.Description).ToArray();
+            }
+
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Data = null,
+                Message = "Failed to create role.",
+                Errors = errors
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GET /api/roles — List all roles
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response: 200 OK with list of RoleResponse
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> GetAllRoles()
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Get all roles from the database.
+            //   → RoleManager.Roles returns an IQueryable<ApplicationRole>.
+            //   → We materialize it with ToListAsync (async).
+            //   → For each role, we also get the user count (optional but useful).
+            // ─────────────────────────────────────────────────────────────────────────
+            var roles = await _roleManager.Roles.ToListAsync();
+            var response = new List<RoleResponse>();
+
+            foreach (var role in roles)
+            {
+                // Get the number of users with this role.
+                // This is an optional field — you can omit it if you don't need it.
+                var userCount = await _roleManager
+                    .GetUsersInRoleAsync(role.Name)
+                    .ContinueWith(t => t.Result.Count);
+
+                response.Add(new RoleResponse
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    NormalizedName = role.NormalizedName,
+                    Description = role.Description,
+                    CreatedDate = role.CreatedDate,
+                    UserCount = userCount
+                });
+            }
+
+            return Ok(new ApiResponse<List<RoleResponse>>
+            {
+                Success = true,
+                Data = response,
+                Message = null
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GET /api/roles/{id} — Get a role by ID
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response: 200 OK with RoleResponse (if found)
+        //           404 Not Found (if not found)
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetRoleById(string id)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Find the role by ID.
+            //   → RoleManager.FindByIdAsync returns the role or null.
+            // ─────────────────────────────────────────────────────────────────────────
+            var role = await _roleManager.FindByIdAsync(id);
+
+            if (role == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"Role with ID '{id}' not found."
+                });
+            }
+
+            var userCount = await _roleManager.GetUsersInRoleAsync(role.Name).ContinueWith(t => t.Result.Count);
+
+            return Ok(new ApiResponse<RoleResponse>
+            {
+                Success = true,
+                Data = new RoleResponse
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    NormalizedName = role.NormalizedName,
+                    Description = role.Description,
+                    CreatedDate = role.CreatedDate,
+                    UserCount = userCount
+                },
+                Message = null
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GET /api/roles/name/{name} — Get a role by name
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response: 200 OK with RoleResponse (if found)
+        //           404 Not Found (if not found)
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpGet("name/{name}")]
+        public async Task<IActionResult> GetRoleByName(string name)
+        {
+            var role = await _roleManager.FindByNameAsync(name);
+
+            if (role == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"Role '{name}' not found."
+                });
+            }
+
+            var userCount = await _roleManager.GetUsersInRoleAsync(role.Name).ContinueWith(t => t.Result.Count);
+
+            return Ok(new ApiResponse<RoleResponse>
+            {
+                Success = true,
+                Data = new RoleResponse
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    NormalizedName = role.NormalizedName,
+                    Description = role.Description,
+                    CreatedDate = role.CreatedDate,
+                    UserCount = userCount
+                },
+                Message = null
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PUT /api/roles/{id} — Update a role
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Request body: { "name": "...", "description": "..." } (partial update)
+        // Response: 200 OK with updated RoleResponse
+        //           404 Not Found if role doesn't exist
+        //           400 Bad Request if validation fails
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateRole(string id, [FromBody] CreateRoleRequest request)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Find the role by ID.
+            // ─────────────────────────────────────────────────────────────────────────
+            var role = await _roleManager.FindByIdAsync(id);
+
+            if (role == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"Role with ID '{id}' not found."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Update the role properties.
+            //   → Only update the fields that were provided.
+            //   → If the name is being changed, check if the new name already exists
+            //     (to prevent duplicate role names).
+            // ─────────────────────────────────────────────────────────────────────────
+            if (!string.IsNullOrWhiteSpace(request.Name))
+            {
+                // Check if the new name already exists (and it's not the current role)
+                if (await _roleManager.RoleExistsAsync(request.Name)
+                    && !role.NormalizedName.Equals(request.Name.ToUpper(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = $"Role '{request.Name}' already exists.",
+                        Errors = new Dictionary<string, string[]>
+                        {
+                            { "Name", new[] { $"Role '{request.Name}' already exists." } }
+                        }
+                    });
+                }
+
+                role.Name = request.Name;
+            }
+
+            if (request.Description != null)
+            {
+                role.Description = request.Description;
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Update the role using RoleManager.UpdateAsync.
+            //   → This updates the role in the AspNetRoles table.
+            // ─────────────────────────────────────────────────────────────────────────
+            var result = await _roleManager.UpdateAsync(role);
+
+            if (result.Succeeded)
+            {
+                return Ok(new ApiResponse<RoleResponse>
+                {
+                    Success = true,
+                    Data = new RoleResponse
+                    {
+                        Id = role.Id,
+                        Name = role.Name,
+                        NormalizedName = role.NormalizedName,
+                        Description = role.Description,
+                        CreatedDate = role.CreatedDate,
+                        UserCount = await _roleManager.GetUsersInRoleAsync(role.Name).ContinueWith(t => t.Result.Count)
+                    },
+                    Message = $"Role '{role.Name}' updated successfully."
+                });
+            }
+
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Data = null,
+                Message = "Failed to update role.",
+                Errors = result.Errors.ToDictionary(e => "General", e => new[] { e.Description })
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DELETE /api/roles/{id} — Delete a role
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response: 200 OK with success message
+        //           404 Not Found if role doesn't exist
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteRole(string id)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Find the role by ID.
+            // ─────────────────────────────────────────────────────────────────────────
+            var role = await _roleManager.FindByIdAsync(id);
+
+            if (role == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"Role with ID '{id}' not found."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Delete the role using RoleManager.DeleteAsync.
+            //   → This deletes the role from AspNetRoles.
+            //   → Identity automatically removes the role from all users
+            //     (deletes rows from AspNetUserRoles).
+            // ─────────────────────────────────────────────────────────────────────────
+            var result = await _roleManager.DeleteAsync(role);
+
+            if (result.Succeeded)
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = null,
+                    Message = $"Role '{role.Name}' deleted successfully."
+                });
+            }
+
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Data = null,
+                Message = "Failed to delete role.",
+                Errors = result.Errors.ToDictionary(e => "General", e => new[] { e.Description })
+            });
+        }
+    }
+}
+```
+
+### File: Controllers/UsersController.cs — Assign / Remove Roles
+
+```csharp
+// ─────────────────────────────────────────────────────────────────────────────
+// File: Controllers/UsersController.cs
+// Video 09 — Role Management: Users Controller (Assign / Remove Roles)
+// ─────────────────────────────────────────────────────────────────────────────
+// This controller handles role assignment to users:
+//   → Assign role(s) to a user (POST /api/users/{userId}/roles)
+//   → Remove role from a user (DELETE /api/users/{userId}/roles/{roleName})
+//   → Get a user's roles (GET /api/users/{userId}/roles)
+//
+// All endpoints require the "Admin" role ([Authorize(Roles="Admin")]).
+// ─────────────────────────────────────────────────────────────────────────────
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using IdentityApiTutorial.DTOs;
+using IdentityApiTutorial.Models;
+using System.Threading.Tasks;
+
+namespace IdentityApiTutorial.Controllers
+{
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [ApiController] + [Route("api/[controller]")] — same pattern as other controllers.
+    // ─────────────────────────────────────────────────────────────────────────────
+    [ApiController]
+    [Route("api/[controller]")]
+    public class UsersController : ControllerBase
+    {
+        // ─────────────────────────────────────────────────────────────────────────
+        // _userManager — handles user operations including role assignment.
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // _roleManager — used to check if a role exists before assigning it.
+        // ─────────────────────────────────────────────────────────────────────────
+        private readonly RoleManager<ApplicationRole> _roleManager;
+
+        public UsersController(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<ApplicationRole> roleManager)
+        {
+            _userManager = userManager;
+            _roleManager = roleManager;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // POST /api/users/{userId}/roles — Assign a role to a user
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Request body: { "roleName": "Admin" }
+        // Response: 200 OK (on success)
+        //           400 Bad Request if user or role doesn't exist, or role already assigned
+        //           404 Not Found if user doesn't exist
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{userId}/roles")]
+        public async Task<IActionResult> AssignRole(string userId, [FromBody] AssignRoleRequest request)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Check if the user exists.
+            //   → UserManager.FindByIdAsync returns the user or null.
+            // ─────────────────────────────────────────────────────────────────────────
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"User with ID '{userId}' not found."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Check if the role exists.
+            //   → RoleManager.RoleExistsAsync checks if a role with this name exists.
+            //   → Role names are case-insensitive.
+            // ─────────────────────────────────────────────────────────────────────────
+            if (!await _roleManager.RoleExistsAsync(request.RoleName))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"Role '{request.RoleName}' does not exist.",
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        { "RoleName", new[] { $"Role '{request.RoleName}' does not exist." } }
+                    }
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Check if the user already has this role.
+            //   → UserManager.IsInRoleAsync checks if the user is already in the role.
+            //   → If yes, return 400 Bad Request (no need to assign again).
+            //   → This is optional — AddToRoleAsync would succeed anyway (it's
+            //     idempotent), but we give a clear error message.
+            // ─────────────────────────────────────────────────────────────────────────
+            if (await _userManager.IsInRoleAsync(user, request.RoleName))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"User '{user.UserName}' already has the '{request.RoleName}' role.",
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        { "RoleName", new[] { $"User already has the '{request.RoleName}' role." } }
+                    }
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 4: Assign the role to the user.
+            //   → UserManager.AddToRoleAsync adds the user to the role.
+            //   → This creates a row in AspNetUserRoles (UserId, RoleId).
+            //   → Returns IdentityResult (Success or Failed with errors).
+            // ─────────────────────────────────────────────────────────────────────────
+            var result = await _userManager.AddToRoleAsync(user, request.RoleName);
+
+            if (result.Succeeded)
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = null,
+                    Message = $"Role '{request.RoleName}' assigned to user '{user.UserName}' successfully."
+                });
+            }
+
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Data = null,
+                Message = "Failed to assign role.",
+                Errors = result.Errors.ToDictionary(e => "General", e => new[] { e.Description })
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DELETE /api/users/{userId}/roles/{roleName} — Remove a role from a user
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response: 200 OK (on success)
+        //           400 Bad Request if role not assigned
+        //           404 Not Found if user doesn't exist
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{userId}/roles/{roleName}")]
+        public async Task<IActionResult> RemoveRole(string userId, string roleName)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Check if the user exists.
+            // ─────────────────────────────────────────────────────────────────────────
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"User with ID '{userId}' not found."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Check if the user has this role.
+            //   → If not, return 400 Bad Request (nothing to remove).
+            // ─────────────────────────────────────────────────────────────────────────
+            if (!await _userManager.IsInRoleAsync(user, roleName))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"User '{user.UserName}' does not have the '{roleName}' role.",
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        { "RoleName", new[] { $"User does not have the '{roleName}' role." } }
+                    }
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 3: Remove the role from the user.
+            //   → UserManager.RemoveFromRoleAsync removes the user from the role.
+            //   → This deletes the row from AspNetUserRoles (UserId, RoleId).
+            // ─────────────────────────────────────────────────────────────────────────
+            var result = await _userManager.RemoveFromRoleAsync(user, roleName);
+
+            if (result.Succeeded)
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = null,
+                    Message = $"Role '{roleName}' removed from user '{user.UserName}' successfully."
+                });
+            }
+
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Data = null,
+                Message = "Failed to remove role.",
+                Errors = result.Errors.ToDictionary(e => "General", e => new[] { e.Description })
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GET /api/users/{userId}/roles — Get a user's roles
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response: 200 OK with list of role names
+        //           404 Not Found if user doesn't exist
+        // ─────────────────────────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{userId}/roles")]
+        public async Task<IActionResult> GetUserRoles(string userId)
+        {
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 1: Check if the user exists.
+            // ─────────────────────────────────────────────────────────────────────────
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"User with ID '{userId}' not found."
+                });
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Step 2: Get the user's roles.
+            //   → UserManager.GetRolesAsync returns a list of role names.
+            // ─────────────────────────────────────────────────────────────────────────
+            var roles = await _userManager.GetRolesAsync(user);
+
+            return Ok(new ApiResponse<List<string>>
+            {
+                Success = true,
+                Data = roles.ToList(),
+                Message = null
+            });
+        }
+    }
+}
+```
+
+---
+
+## Postman / Swagger Tests
+
+### Test 1: Create a Role
+
+**Request:**
+```
+POST https://localhost:7001/api/roles
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "name": "Admin",
+  "description": "Full access to all administrative functions"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "name": "Admin",
+    "normalizedName": "ADMIN",
+    "description": "Full access to all administrative functions",
+    "createdDate": "2024-01-01T12:00:00Z",
+    "userCount": 0
+  },
+  "message": "Role 'Admin' created successfully."
+}
+```
+
+**Verification:**
+- `success: true`.
+- The role is created with the specified name and description.
+- `normalizedName` is "ADMIN" (uppercase version).
+- `userCount` is 0 (no users have this role yet).
+- Save the `id` for later tests.
+
+### Test 2: Create a Duplicate Role
+
+**Request:**
+```
+POST https://localhost:7001/api/roles
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "name": "Admin",
+  "description": "Duplicate test"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Role 'Admin' already exists.",
+  "errors": {
+    "Name": ["Role 'Admin' already exists."]
+  }
+}
+```
+
+**Verification:**
+- The role is not created (check the database — no new row in AspNetRoles).
+- The error is clear and indicates the role already exists.
+
+### Test 3: List All Roles
+
+**Request:**
+```
+GET https://localhost:7001/api/roles
+Authorization: Bearer <admin-token>
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "name": "Admin",
+      "normalizedName": "ADMIN",
+      "description": "Full access to all administrative functions",
+      "createdDate": "2024-01-01T12:00:00Z",
+      "userCount": 0
+    }
+  ],
+  "message": null
+}
+```
+
+### Test 4: Get Role by ID
+
+**Request:**
+```
+GET https://localhost:7001/api/roles/3fa85f64-5717-4562-b3fc-2c963f66afa6
+Authorization: Bearer <admin-token>
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "name": "Admin",
+    "normalizedName": "ADMIN",
+    "description": "Full access to all administrative functions",
+    "createdDate": "2024-01-01T12:00:00Z",
+    "userCount": 0
+  },
+  "message": null
+}
+```
+
+### Test 5: Get Role by Name
+
+**Request:**
+```
+GET https://localhost:7001/api/roles/name/Admin
+Authorization: Bearer <admin-token>
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "name": "Admin",
+    "normalizedName": "ADMIN",
+    "description": "Full access to all administrative functions",
+    "createdDate": "2024-01-01T12:00:00Z",
+    "userCount": 0
+  },
+  "message": null
+}
+```
+
+**Verification:**
+- The role is found by name (case-insensitive — "admin", "Admin", "ADMIN" all work).
+
+### Test 6: Update a Role
+
+**Request:**
+```
+PUT https://localhost:7001/api/roles/3fa85f64-5717-4562-b3fc-2c963f66afa6
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "name": "SuperAdmin",
+  "description": "Elevated admin with full system access"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "name": "SuperAdmin",
+    "normalizedName": "SUPERADMIN",
+    "description": "Elevated admin with full system access",
+    "createdDate": "2024-01-01T12:00:00Z",
+    "userCount": 0
+  },
+  "message": "Role 'SuperAdmin' updated successfully."
+}
+```
+
+### Test 7: Delete a Role
+
+**Request:**
+```
+DELETE https://localhost:7001/api/roles/3fa85f64-5717-4562-b3fc-2c963f66afa6
+Authorization: Bearer <admin-token>
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Role 'SuperAdmin' deleted successfully."
+}
+```
+
+**Verification:**
+- The role is deleted from AspNetRoles.
+- If the role was assigned to users, the rows in AspNetUserRoles are also deleted.
+
+### Test 8: Assign Role to User
+
+**Request:**
+```
+POST https://localhost:7001/api/users/3fa85f64-5717-4562-b3fc-2c963f66afa6/roles
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "roleName": "Admin"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Role 'Admin' assigned to user 'ahmad' successfully."
+}
+```
+
+**Verification:**
+- A row is added to AspNetUserRoles (UserId = user's ID, RoleId = Admin's ID).
+- The user now has the "Admin" role.
+
+### Test 9: Assign Non-Existent Role
+
+**Request:**
+```
+POST https://localhost:7001/api/users/3fa85f64-5717-4562-b3fc-2c963f66afa6/roles
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "roleName": "NonExistentRole"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Role 'NonExistentRole' does not exist.",
+  "errors": {
+    "RoleName": ["Role 'NonExistentRole' does not exist."]
+  }
+}
+```
+
+### Test 10: Assign Role to Non-Existent User
+
+**Request:**
+```
+POST https://localhost:7001/api/users/nonexistent-user-id/roles
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "roleName": "Admin"
+}
+```
+
+**Expected Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "User with ID 'nonexistent-user-id' not found."
+}
+```
+
+### Test 11: Remove Role from User
+
+**Request:**
+```
+DELETE https://localhost:7001/api/users/3fa85f64-5717-4562-b3fc-2c963f66afa6/roles/Admin
+Authorization: Bearer <admin-token>
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Role 'Admin' removed from user 'ahmad' successfully."
+}
+```
+
+**Verification:**
+- The row is deleted from AspNetUserRoles.
+- The user no longer has the "Admin" role.
+
+### Test 12: Get User's Roles
+
+**Request:**
+```
+GET https://localhost:7001/api/users/3fa85f64-5717-4562-b3fc-2c963f66afa6/roles
+Authorization: Bearer <admin-token>
+```
+
+**Expected Response (200 OK) — after assigning Admin:**
+```json
+{
+  "success": true,
+  "data": ["Admin"],
+  "message": null
+}
+```
+
+**Expected Response (200 OK) — after removing Admin:**
+```json
+{
+  "success": true,
+  "data": [],
+  "message": null
+}
+```
+
+### Test 13: Assign Role Without Admin Token (Should Fail)
+
+**Request:**
+```
+POST https://localhost:7001/api/users/3fa85f64-5717-4562-b3fc-2c963f66afa6/roles
+Content-Type: application/json
+Authorization: Bearer <regular-user-token>
+
+{
+  "roleName": "Admin"
+}
+```
+
+**Expected Response (403 Forbidden):**
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.4",
+  "title": "Forbidden",
+  "status": 403,
+  "traceId": "00-abc123..."
+}
+```
+
+**Verification:**
+- [Authorize(Roles="Admin")] returns 403 when the user doesn't have the Admin role.
+- Regular users cannot assign roles.
+
+### Swagger Tests
+
+1. Run the API and navigate to `https://localhost:7001/swagger`.
+2. Find the `POST /api/roles` endpoint.
+3. Click "Try it out".
+4. Enter:
+   ```json
+   {
+     "name": "Moderator",
+     "description": "Can edit and delete content"
+   }
+   ```
+5. Click "Execute".
+6. Expected: `200 OK` with the created role.
+7. Find `GET /api/roles`.
+8. Click "Try it out" → "Execute".
+9. Expected: `200 OK` with the list of roles.
+10. Find `POST /api/users/{userId}/roles`.
+11. Enter the user ID and `{"roleName": "Moderator"}`.
+12. Click "Execute".
+13. Expected: `200 OK` with success message.
+
+---
+
+# What's Next — Videos 10–19
+
+This file covers Videos 01–09, which take you from concept through core API implementation (registration, login, JWT, roles). The remaining videos build on this foundation:
+
+| Video | Title | What You'll Learn |
+|-------|-------|-------------------|
+| 10 | RBAC in API — [Authorize(Roles)], Policy Tests, Permission System | Secure endpoints with role-based authorization |
+| 11 | Claims in API — Add/Remove Claims, Claim Policies, Reading Claims | Use claims for fine-grained authorization |
+| 12 | Policy-Based Authorization — Custom Requirements & Handlers | Build custom authorization policies |
+| 13 | Password Policies & Custom Validation | Configure password rules and custom validators |
+| 14 | Account Lockout & Security Stamp | Protect against brute force, invalidate tokens |
+| 15 | Two-Factor Authentication (2FA) — TOTP, Recovery Codes | Add a second factor to login |
+| 16 | External Login Providers — Google, Facebook, Microsoft | Let users log in with external accounts |
+| 17 | Token Providers — Email Confirmation, Password Reset, Custom Providers | Send confirmation and reset emails |
+| 18 | Customizing Identity — Custom Stores, Custom SignInManager, JWT Customization | Extend Identity beyond the defaults |
+| 19 | Production-Ready API Security — Best Practices, Audit Logging, Troubleshooting | Deploy with confidence |
+
+Each video follows the same structure: Theory → 🎬 Recording Notes → Complete Implementation → Postman/Swagger Tests. The complete file for all 19 videos is `README.md` in the same folder.
+
 # Video 10 — RBAC in API: [Authorize(Roles)], Policy Tests, Permission System
 
 ## Theory & Definitions
